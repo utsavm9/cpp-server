@@ -37,8 +37,24 @@ class session {
 	void handle_read(const boost::system::error_code& error,
 	                 size_t bytes_transferred) {
 		if (!error) {
+			char http_response[max_length] = "\0"; // initialize http response
+
+            // headers of http response
+			strcat(http_response, http_ok);
+			strcat(http_response, crlf);
+			strcat(http_response, content_type);
+			strcat(http_response, crlf);
+			strcat(http_response, content_length);
+			strcat(http_response, std::to_string(bytes_transferred).c_str()); // convert size_t to string and then to c string so that strcat works
+			strcat(http_response, crlf);
+
+            // body of http response
+			strcat(http_response, crlf);
+			strcat(http_response, data_);
+
+            // write http response to client
 			boost::asio::async_write(socket_,
-			                         boost::asio::buffer(data_, bytes_transferred),
+			                         boost::asio::buffer(http_response, strlen(http_response)),
 			                         boost::bind(&session::handle_write, this,
 			                                     boost::asio::placeholders::error));
 		} else {
@@ -60,6 +76,12 @@ class session {
 	tcp::socket socket_;
 	enum { max_length = 1024 };
 	char data_[max_length];
+
+    // strings used to create http response
+	const char* crlf = "\r\n";
+	const char* http_ok = "HTTP/1.1 200 OK";
+	const char* content_type = "Content-Type: text/plain";
+	const char* content_length = "Content-Length: ";
 };
 
 class server {
