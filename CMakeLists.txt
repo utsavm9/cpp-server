@@ -29,24 +29,24 @@ add_subdirectory(/usr/src/googletest googletest)
 # Enable Boost
 # Use static libraries so binaries can be deployed without a full boost install
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.50 REQUIRED COMPONENTS system)
+find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem)
 message(STATUS "Boost version: ${Boost_VERSION}")
 
 include_directories(include)
 
 # Update name and srcs
-# add_library(example_lib src/example_lib.cc)
+add_library(parser src/config_parser.cc)
 
 # Update executable name, srcs, and deps
 add_executable(webserver src/server_main.cc)
-target_link_libraries(webserver Boost::system pthread)
+target_link_libraries(webserver parser Boost::system pthread)
 
 # Update test executable name, srcs, and deps
-# add_executable(example_lib_test tests/example_lib_test.cc)
-# target_link_libraries(example_lib_test example_lib gtest_main)
+add_executable(all_tests tests/parser_test.cc tests/config_test.cc)
+target_link_libraries(all_tests parser gtest_main Boost::filesystem)
 
 # Update with test binary
-# gtest_discover_tests(example_lib_test WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+gtest_discover_tests(all_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 # Update with target/test targets
 include(cmake/CodeCoverageReportConfig.cmake)

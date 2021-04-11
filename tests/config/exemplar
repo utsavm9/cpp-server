@@ -1,0 +1,10 @@
+server {
+    location / {
+        root /data/www;
+    }
+	
+    location /images/ {
+    }
+
+	listen 100;
+}
