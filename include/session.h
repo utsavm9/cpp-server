@@ -19,11 +19,5 @@ class session {
 
 	tcp::socket socket_;
 	enum { max_length = 1024 };
-	char data_[max_length];
-
-	// strings used to create http response
-	const char* crlf = "\r\n";
-	const char* http_ok = "HTTP/1.1 200 OK";
-	const char* content_type = "Content-Type: text/plain";
-	const char* content_length = "Content-Length: ";
+	char data_[max_length + 1];
 };
