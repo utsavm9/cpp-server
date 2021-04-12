@@ -30,7 +30,7 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
 		// Construct the response
 		std::string http_response =
 		    "HTTP/1.1 200 OK\r\n"
-		    "Content-Type: text\\plain\r\n"
+		    "Content-Type: text/plain\r\n"
 		    "Content-Length: " +
 		    std::to_string(bytes_transferred) +
 		    "\r\n"
