@@ -36,10 +36,13 @@ include_directories(include)
 
 # Update name and srcs
 add_library(parser src/config_parser.cc)
+add_library(session src/session.cc)
+add_library(server src/server.cc)
 
 # Update executable name, srcs, and deps
 add_executable(webserver src/server_main.cc)
-target_link_libraries(webserver parser Boost::system pthread)
+target_link_libraries(webserver parser server Boost::system pthread)
+target_link_libraries(server session)
 
 # Update test executable name, srcs, and deps
 add_executable(all_tests tests/parser_test.cc tests/config_test.cc)
