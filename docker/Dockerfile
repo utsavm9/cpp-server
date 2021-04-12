@@ -14,18 +14,18 @@ RUN ctest --output-on_failure
 
 ### Deploy container ###
 # Define deploy stage
-FROM ubuntu:latest as deploy
+FROM koko:base as deploy
 
-# TODO(!): Copy server output binary to "."
-# COPY --from=builder /usr/src/project/build/bin/example_server .
+# Copy server output binary to "."
+COPY --from=builder /usr/src/project/build/bin/webserver .
+COPY --from=builder /usr/src/project/conf/deploy.conf .
 
-# TODO(!): Expose some port(s)
-# EXPOSE 80
+# Expose some port(s)
+EXPOSE 80
 
 # Use ENTRYPOINT to specify the binary name
-# TODO(!): Update with real server name
-# ENTRYPOINT ["./example_server"]
+ENTRYPOINT ["./webserver"]
 
 # Use CMD to specify arguments to ENTRYPOINT
-# TODO(!): Update with real server args
-# CMD [""]
+# TODO(utsavm9): Change this to conf file once port is merged
+CMD ["deploy.conf"]
