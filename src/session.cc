@@ -5,7 +5,6 @@
 
 using boost::asio::ip::tcp;
 
-
 tcp::socket& session::socket() {
 	return socket_;
 }
@@ -19,8 +18,7 @@ void session::start() {
 
 void session::handle_read(const boost::system::error_code& error, size_t bytes_transferred) {
 	if (!error) {
-		
-		std::string http_response = generate_response(data_, bytes_transferred);
+		std::string http_response = response_generator_.generate_response(data_, bytes_transferred, max_length + 1);  //last param length of buffer
 
 		// write http response to client
 		boost::asio::async_write(socket_,
@@ -31,32 +29,6 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
 		delete this;
 	}
 }
-
-
-std::string session::generate_response(char* read_buf, size_t bytes_transferred){
-
-	// Ensure that the data is null terminated
-		if (bytes_transferred < 0) {
-			data_[0] = '\0';
-		} else if (bytes_transferred >= 1024) {
-			data_[1024] = '\0';
-		} else {
-			data_[bytes_transferred] = '\0';
-		}
-
-	// Construct the response
-		std::string http_response =
-		    "HTTP/1.1 200 OK\r\n"
-		    "Content-Type: text/plain\r\n"
-		    "Content-Length: " +
-		    std::to_string(bytes_transferred) +
-		    "\r\n"
-		    "\r\n" +
-		    std::string(data_);
-
-		return http_response;
-}
-
 
 void session::handle_write(const boost::system::error_code& error) {
 	if (!error) {

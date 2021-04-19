@@ -1,6 +1,8 @@
-#pragma once 
+#pragma once
 
 #include <boost/asio.hpp>
+
+#include "response_generator.h"
 
 using boost::asio::ip::tcp;
 
@@ -16,9 +18,11 @@ class session {
    private:
 	void handle_read(const boost::system::error_code&, size_t);
 	void handle_write(const boost::system::error_code&);
-	std::string generate_response(char* read_buf, size_t bytes_transferred); 
 
 	tcp::socket socket_;
+
+	Response_Generator response_generator_;
+
 	enum { max_length = 1024 };
 	char data_[max_length + 1];
 };

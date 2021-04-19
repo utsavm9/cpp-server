@@ -38,19 +38,20 @@ include_directories(include)
 add_library(parser src/config_parser.cc)
 add_library(session src/session.cc)
 add_library(server src/server.cc)
+add_library(response_generator src/response_generator.cc)
 
 # Update executable name, srcs, and deps
 add_executable(webserver src/server_main.cc)
 target_link_libraries(webserver parser server Boost::system pthread)
-target_link_libraries(server session)
+target_link_libraries(server session response_generator)
 
 # Update test executable name, srcs, and deps
-add_executable(all_tests tests/parser_test.cc tests/config_test.cc)
-target_link_libraries(all_tests parser gtest_main Boost::filesystem)
+add_executable(all_tests tests/parser_test.cc tests/config_test.cc tests/response_generator_test.cc)
+target_link_libraries(all_tests parser response_generator gtest_main Boost::filesystem)
 
 # Update with test binary
 gtest_discover_tests(all_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 # Update with target/test targets
 include(cmake/CodeCoverageReportConfig.cmake)
-generate_coverage_report(TARGETS webserver parser session server TESTS all_tests)
+generate_coverage_report(TARGETS webserver parser session server response_generator TESTS all_tests)
