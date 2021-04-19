@@ -63,3 +63,7 @@ class NginxConfigParser {
 
 	TokenType ParseToken(std::istream* input, std::string* value);
 };
+
+// Parses the arguments to fill in the port number
+// Exits with error on missing arguments
+int parse_args(int argc, const char** argv, int* port);

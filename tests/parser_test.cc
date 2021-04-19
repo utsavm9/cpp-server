@@ -83,3 +83,27 @@ TEST_F(NginxConfigParserTest, InvalidConfigs) {
 		config_expect_fail(file);
 	}
 }
+
+TEST(ParseArgs, UnitTests) {
+	ASSERT_DEATH(
+	    {
+		    int port;
+		    const char *argv[] = {(char *)("program-name")};
+		    parse_args(1, argv, &port);
+	    },
+	    "");
+
+	int port;
+	const char *argv_good_config[] = {
+	    (char *)("program-name"),
+	    (char *)("config/exemplar")};
+	parse_args(2, argv_good_config, &port);
+	EXPECT_EQ(port, 100);
+
+	port = 0;
+	const char *argv_bad_config[] = {
+	    (char *)("program-name"),
+	    (char *)("parser/missing_opening_braces_config")};
+	parse_args(2, argv_bad_config, &port);
+	EXPECT_EQ(port, 80);
+}

@@ -318,3 +318,22 @@ bool NginxConfigParser::Parse(const char* file_name, NginxConfig* config) {
 	config_file.close();
 	return return_value;
 }
+
+int parse_args(int argc, const char* argv[], int* port) {
+	if (argc != 2) {
+		std::cerr << "Usage: webserver <config_file_path>\n";
+		exit(1);
+	}
+
+	// Parse the config
+	NginxConfigParser config_parser;
+	NginxConfig config;
+	if (!config_parser.Parse(argv[1], &config)) {
+		std::cerr << "could not parse the config" << std::endl;
+	}
+
+	// Extract the port number from config
+	*port = config.find_port();
+	std::cerr << "found port number " << *port << std::endl;
+	return 0;
+}
