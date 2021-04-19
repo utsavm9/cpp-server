@@ -17,13 +17,13 @@
 #include <string>
 #include <vector>
 
-std::string NginxConfig::ToString(int depth) {
+/*std::string NginxConfig::ToString(int depth) {
 	std::string serialized_config;
 	for (const auto& statement : statements_) {
 		serialized_config.append(statement->ToString(depth));
 	}
 	return serialized_config;
-}
+}*/
 
 int NginxConfig::find_port() {
 	for (const auto& statement : statements_) {
@@ -52,7 +52,7 @@ int NginxConfig::find_port() {
 	return 80;
 }
 
-std::string NginxConfigStatement::ToString(int depth) {
+/*std::string NginxConfigStatement::ToString(int depth) {
 	std::string serialized_statement;
 	for (int i = 0; i < depth; ++i) {
 		serialized_statement.append("  ");
@@ -75,7 +75,7 @@ std::string NginxConfigStatement::ToString(int depth) {
 	}
 	serialized_statement.append("\n");
 	return serialized_statement;
-}
+}*/
 
 const char* NginxConfigParser::TokenTypeAsString(TokenType type) {
 	switch (type) {

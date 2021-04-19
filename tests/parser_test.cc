@@ -55,6 +55,8 @@ TEST_F(NginxConfigParserTest, ValidConfigs) {
 	    "parser/empty_block_config",
 	    "parser/quotes_config",
 	    "parser/escape_char_config",
+	    "parser/comment_config",
+	    "parser/multi_comment_config"
 	};
 
 	for (auto file : files) {
