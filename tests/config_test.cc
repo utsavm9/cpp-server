@@ -26,6 +26,7 @@ TEST_F(NginxConfigTest, FindPort) {
 	    {"config/missing_port", default_port},
 	    {"config/missing_server", default_port},
 	    {"config/non_numeric_port", default_port},
+	    {"config/too_long_port", default_port},
 	    {"config/wrong_listen_format", default_port},
 	};
 

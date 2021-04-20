@@ -5,6 +5,10 @@
 
 using boost::asio::ip::tcp;
 
+session::session(boost::asio::io_context& io_context)
+    : socket_(io_context) {
+}
+
 tcp::socket& session::socket() {
 	return socket_;
 }

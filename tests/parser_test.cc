@@ -55,9 +55,9 @@ TEST_F(NginxConfigParserTest, ValidConfigs) {
 	    "parser/empty_block_config",
 	    "parser/quotes_config",
 	    "parser/escape_char_config",
+	    "parser/escape_single_quotes",
 	    "parser/comment_config",
-	    "parser/multi_comment_config"
-	};
+	    "parser/multi_comment_config"};
 
 	for (auto file : files) {
 		boost::filesystem::path filepath(file);
@@ -69,12 +69,14 @@ TEST_F(NginxConfigParserTest, ValidConfigs) {
 
 TEST_F(NginxConfigParserTest, InvalidConfigs) {
 	config_expect_fail("non-existant-file");
+	NginxConfigParser *parser = new NginxConfigParser();
 
 	const char *files[] = {
 	    "parser/invalid_config",
 	    "parser/extra_closing_braces_config",
 	    "parser/missing_opening_braces_config",
 	    "parser/invalid_escape_config",
+	    "parser/missing_end_block",
 	    "parser/missing_space_after_quotes_config",
 	};
 

@@ -11,15 +11,8 @@ int main(int argc, const char* argv[]) {
 	int port;
 	parse_args(argc, argv, &port);
 
-	try {
-		// Start server with port from config
-		boost::asio::io_service io_service;
-		server s(io_service, port);
-		io_service.run();
-
-	} catch (std::exception& e) {
-		std::cerr << "Exception: " << e.what() << "\n";
-	}
-
+	// Handles exit error code
+	boost::asio::io_context io_context;
+	server::serve_forever(&io_context, port);
 	return 0;
 }

@@ -40,13 +40,13 @@ add_library(server src/server.cc)
 add_library(response_generator src/response_generator.cc)
 
 # Generate the server executable
-add_executable(webserver src/server_main.cc)
+add_executable(webserver src/main.cc)
 target_link_libraries(webserver parser server Boost::system pthread)
 target_link_libraries(server session response_generator)
 
 # Generate the test executable
-add_executable(unit_tests tests/parser_test.cc tests/config_test.cc tests/response_generator_test.cc)
-target_link_libraries(unit_tests parser response_generator gtest_main Boost::filesystem)
+add_executable(unit_tests tests/parser_test.cc tests/config_test.cc tests/server_test.cc tests/response_generator_test.cc)
+target_link_libraries(unit_tests parser server response_generator gtest_main Boost::filesystem)
 
 # Unit tests
 gtest_discover_tests(unit_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
