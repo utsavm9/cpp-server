@@ -8,6 +8,7 @@
 //   http://lxr.nginx.org/source/src/core/ngx_conf_file.c
 
 #include "config_parser.h"
+#include "logger.h"
 
 #include <cstdio>
 #include <fstream>
@@ -31,12 +32,12 @@ int NginxConfig::find_port() {
 						try {
 							return std::stoi(substatement->tokens_[1]);
 						} catch (std::out_of_range) {
-							std::cerr << "port number unbelievably large" << std::endl;
+							BOOST_LOG_SEV(slg::get(), error) << "Port Number Too Large";
 						} catch (std::invalid_argument) {
-							std::cerr << "malformed port number" << std::endl;
+							BOOST_LOG_SEV(slg::get(), info) << "Malformed Port Number " ;
 						}
 					} else {
-						std::cerr << "expecting exactly one port number field here" << std::endl;
+						BOOST_LOG_SEV(slg::get(), error) << "expecting exactly one port number field here";
 					}
 				}
 			}
@@ -290,7 +291,7 @@ bool NginxConfigParser::Parse(const char* file_name, NginxConfig* config) {
 
 int parse_args(int argc, const char* argv[], int* port) {
 	if (argc != 2) {
-		std::cerr << "Usage: webserver <config_file_path>\n";
+		BOOST_LOG_SEV(slg::get(), fatal) << "Missing config file!, Usage: webserver <config_file_path>";
 		exit(1);
 	}
 
@@ -298,11 +299,12 @@ int parse_args(int argc, const char* argv[], int* port) {
 	NginxConfigParser config_parser;
 	NginxConfig config;
 	if (!config_parser.Parse(argv[1], &config)) {
-		std::cerr << "could not parse the config" << std::endl;
+		BOOST_LOG_SEV(slg::get(), fatal) << "Failed to parse config! ";
 	}
 
 	// Extract the port number from config
 	*port = config.find_port();
-	std::cerr << "found port number " << *port << std::endl;
+	BOOST_LOG_SEV(slg::get(), info) << "found port number " << *port ;
+	
 	return 0;
 }

@@ -4,3 +4,4 @@ build
 build_*
 mirror
 webserver
+logs

@@ -29,7 +29,7 @@ add_subdirectory(/usr/src/googletest googletest)
 # Enable Boost
 # Using static libraries so binaries can be deployed without a full boost install
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem)
+find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem log_setup log regex)
 message(STATUS "Boost version: ${Boost_VERSION}")
 
 # Include our header files
@@ -38,15 +38,17 @@ add_library(parser src/config_parser.cc)
 add_library(session src/session.cc)
 add_library(server src/server.cc)
 add_library(response_generator src/response_generator.cc)
+add_library(logger src/logger.cc)
 
 # Generate the server executable
 add_executable(webserver src/main.cc)
-target_link_libraries(webserver parser server Boost::system pthread)
+target_link_libraries(webserver parser logger server Boost::system pthread Boost::filesystem
+Boost::regex Boost::log_setup Boost::log)
 target_link_libraries(server session response_generator)
 
 # Generate the test executable
 add_executable(unit_tests tests/parser_test.cc tests/config_test.cc tests/server_test.cc tests/response_generator_test.cc)
-target_link_libraries(unit_tests parser server response_generator gtest_main Boost::filesystem)
+target_link_libraries(unit_tests parser server logger response_generator gtest_main Boost::filesystem Boost::filesystem Boost::regex Boost::log_setup Boost::log)
 
 # Unit tests
 gtest_discover_tests(unit_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)

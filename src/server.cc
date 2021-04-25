@@ -1,5 +1,6 @@
 
 #include "server.h"
+#include "logger.h"
 
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
@@ -36,9 +37,10 @@ void server::serve_forever(boost::asio::io_context* io_context, int port) {
 	try {
 		// Start server with port from config
 		server s(*io_context, port);
+		BOOST_LOG_SEV(slg::get(), info) << "Server Ready and Listening on port " << port;
 		io_context->run();
 
 	} catch (std::exception& e) {
-		std::cerr << "Exception: " << e.what() << "\n";
+		BOOST_LOG_SEV(slg::get(), fatal) << "Exception: " << e.what();
 	}
 }

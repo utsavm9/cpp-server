@@ -1,11 +1,10 @@
 #include "response_generator.h"
-
+#include "logger.h"
 #include <iostream>
 
 std::string Response_Generator::generate_response(char* read_buf, size_t bytes_transferred, size_t max_buf_size) {
 	if (bytes_transferred > (max_buf_size - 1)) {  //this method shouldn't be called with these parameters
-		std::cerr << "Bad Parameter for response_generator::generate_response()" << std::endl;
-		std::cerr << "Please check your buffer size for read_buf" << std::endl;
+		BOOST_LOG_SEV(slg::get(), error) << "Bad Parameter for response_generator::generate_response(), Please check your buffer size for read_buf";
 		return "";
 	}
 
@@ -27,6 +26,8 @@ std::string Response_Generator::generate_response(char* read_buf, size_t bytes_t
 	    "\r\n"
 	    "\r\n" +
 	    std::string(read_buf);
+
+	BOOST_LOG_SEV(slg::get(), debug) << "HTTP RESPONSE: " << http_response;
 
 	return http_response;
 }
