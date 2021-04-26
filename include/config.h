@@ -46,7 +46,7 @@ class NginxConfig {
 	void extract_targets();
 
 	// Mapping target url paths to potential services
-	std::vector<std::pair<std::string,std::string>> urlToServiceName;
+	std::vector<std::pair<std::string, std::string>> urlToServiceName;
 
 	// Hashmap mapping url paths to filesystem
 	std::unordered_map<std::string, std::string> urlToLinux;

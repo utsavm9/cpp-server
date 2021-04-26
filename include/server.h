@@ -1,10 +1,12 @@
 #pragma once
 
 #include <boost/asio.hpp>
-#include <unordered_map>
+#include <vector>
 
 #include "config.h"
 #include "session.h"
+#include "parser.h"
+#include "service.h"
 
 class server {
    public:
@@ -20,6 +22,11 @@ class server {
 	static void server_sigint(int s);
 
    private:
+	NginxConfigParser config_parser;
+	NginxConfig config;
+
+	std::vector<Service*> service_handlers;
+
 	void start_accept();
 
 	void handle_accept(session* new_session, const boost::system::error_code& error);

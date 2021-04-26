@@ -5,15 +5,21 @@
 
 #include "config.h"
 #include "logger.h"
+#include "service.h"
 
 using boost::asio::ip::tcp;
+using error_code = boost::system::error_code;
+namespace http = boost::beast::http;
 
-session::session(boost::asio::io_context& io_context, NginxConfig* c)
-    : socket_(io_context), config(c) {
+session::session(boost::asio::io_context& io_context, NginxConfig* c, std::vector<Service*>& s, int max_len)
+    : socket_(io_context), config(c), max_length(max_len), service_handlers(s) {
 	BOOST_LOG_SEV(slg::get(), info) << "constructed a new session";
+	data_ = new char[max_length];
+	service_handlers = s;
 }
 
 session::~session() {
+	delete[] data_;
 	BOOST_LOG_SEV(slg::get(), info) << "session closed";
 }
 
@@ -30,7 +36,7 @@ void session::start() {
 
 void session::handle_read(const boost::system::error_code& error, size_t bytes_transferred) {
 	if (!error) {
-		std::string http_response = response_generator_.generate_response(data_, bytes_transferred, max_length + 1);  //last param length of buffer
+		std::string http_response = construct_response(bytes_transferred);
 
 		// write http response to client
 		boost::asio::async_write(socket_,
@@ -51,4 +57,40 @@ void session::handle_write(const boost::system::error_code& error) {
 	} else {
 		delete this;
 	}
+}
+
+std::string session::construct_response(size_t bytes_transferred) {
+	if (bytes_transferred > max_length) {  //this method shouldn't be called with these parameters
+		BOOST_LOG_SEV(slg::get(), error) << "session received a request which was larger than the maximum it could handle, internal server error";
+		return Service::internal_server_error();
+	}
+
+	std::string req_str = std::string(data_, data_ + bytes_transferred);
+	http::request_parser<http::string_body> parser;
+	http::response<http::string_body> res;
+	error_code err;
+
+	// Parse the request
+	parser.put(boost::asio::buffer(req_str), err);
+
+	// Malformed request
+	if (err) {
+		BOOST_LOG_SEV(slg::get(), error) << "error while parsing request, " << err.category().name() << ": " << err.message() << ", echoing back request by default";
+		return Service::bad_request();
+	}
+
+	http::request<http::string_body> req = parser.get();
+	BOOST_LOG_SEV(slg::get(), error) << "received " << req.method() << " request, user agent '" << req[http::field::user_agent] << "'";
+
+	// Try letting each service handler serve this request
+	for (Service *sv : service_handlers) {
+		if (sv->can_handle(req)) {
+			return sv->make_response(req);
+		}
+	}
+
+	// No service handler there for this request
+	BOOST_LOG_SEV(slg::get(), info) << "no service handler exists for " << req.method() << " request from user agent '" << req[http::field::user_agent] << "'";
+
+	return Service::bad_request();
 }

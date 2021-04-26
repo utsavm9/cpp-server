@@ -103,7 +103,7 @@ test_curl() {
 
 	curl -o "$OUTPUT" -s localhost:"$PORT" --data "$BODY"
 
-	grep "$BODY" "$OUTPUT"
+	grep "Request was malformed." "$OUTPUT"
 	GREP_RET=$?
 	OUTPUT_CONTENT=$(cat "$OUTPUT")
 
@@ -121,31 +121,6 @@ test_curl() {
 
 # Integration tests
 start
-
-REQUEST="Missing headers"
-RESPONSE="HTTP/1.1 200 OK\r
-Content-Type: text/plain\r
-Content-Length: 15\r
-\r
-Missing headers"
-test_nc "$REQUEST" "$RESPONSE"
-
-REQUEST="\n"
-RESPONSE="HTTP/1.1 200 OK\r
-Content-Type: text/plain\r
-Content-Length: 1\r
-\r
-
-"
-test_nc "$REQUEST" "$RESPONSE"
-
-REQUEST="GET / HTTP/1.1"
-RESPONSE="HTTP/1.1 200 OK\r
-Content-Type: text/plain\r
-Content-Length: 14\r
-\r
-GET / HTTP/1.1"
-test_nc "$REQUEST" "$RESPONSE"
 
 BODY="Full-fledged HTTP request body"
 test_curl "$BODY"

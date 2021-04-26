@@ -20,7 +20,7 @@
 #include "logger.h"
 #include "parser.h"
 
-NginxConfig::NginxConfig() : port(80), urlToLinux{}, urlToServiceName{} {
+NginxConfig::NginxConfig() : port(80), urlToLinux{}, urlToServiceName{{"/", "echo"}} {
 }
 
 void NginxConfig::free_memory() {
@@ -57,7 +57,6 @@ void NginxConfig::extract_targets() {
 	std::vector<std::pair<std::string, std::string>> urlToServiceNameMap;
 	std::unordered_map<std::string, std::string> urlToLinuxMap;
 
-
 	for (const auto &statement : statements_) {
 		auto tokens = statement->tokens_;
 		if (tokens.size() > 0 && tokens[0] == "server") {
@@ -66,14 +65,13 @@ void NginxConfig::extract_targets() {
 					//Check for approprate directives in register_paths block
 
 					for (const auto &path_reg : substatement->child_block_->statements_) {
-						if (path_reg->tokens_.size() > 0 && path_reg->tokens_.size() < 3){
+						if (path_reg->tokens_.size() > 0 && path_reg->tokens_.size() < 3) {
 							urlToServiceNameMap.push_back(std::make_pair(path_reg->tokens_[0], path_reg->tokens_[1]));
-							if(path_reg->tokens_[1] == "static"){
-								for (const auto &st_substatement: path_reg->child_block_->statements_) {
-									if(st_substatement->tokens_[0] == "root"){
+							if (path_reg->tokens_[1] == "static") {
+								for (const auto &st_substatement : path_reg->child_block_->statements_) {
+									if (st_substatement->tokens_[0] == "root") {
 										urlToLinuxMap.insert(std::make_pair(path_reg->tokens_[0], st_substatement->tokens_[1]));
-									}
-									else{
+									} else {
 										BOOST_LOG_SEV(slg::get(), error) << "Unexpected directive " << path_reg->tokens_[0];
 									}
 								}
