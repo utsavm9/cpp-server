@@ -8,7 +8,8 @@
 #include "gtest/gtest.h"
 
 void server_runner(boost::asio::io_context* io_context, int port, bool* done) {
-	server::serve_forever(io_context, port);
+	std::unordered_map<std::string, std::vector<std::string>>* dummy_map;
+	server::serve_forever(io_context, port, dummy_map);
 	*done = true;
 }
 

@@ -8,7 +8,9 @@
 #include "session.h"
 #include "logger.h"
 
-#include<csignal>
+#include <csignal>
+#include <vector>
+#include <unordered_map>
 
 void sigint_handler(int s){
 	BOOST_LOG_SEV(slg::get(), warning) << "SIGINT, Closing Server....";
@@ -24,11 +26,13 @@ int main(int argc, const char* argv[]) {
     sigaction(SIGINT, &sigIntHandler, NULL);
 
 	int port;
-	init_logger();
-	parse_args(argc, argv, &port);
+	std::unordered_map<std::string, std::vector<std::string>>* path_map;
 
+	init_logger();
+	parse_args(argc, argv, &port, path_map);
+	
 	// Handles exit error code
 	boost::asio::io_context io_context;
-	server::serve_forever(&io_context, port);
+	server::serve_forever(&io_context, port, path_map);
 	return 0;
 }

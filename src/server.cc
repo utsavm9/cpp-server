@@ -5,6 +5,7 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 #include <iostream>
+#include <unordered_map>
 
 #include "session.h"
 
@@ -33,7 +34,7 @@ void server::handle_accept(session* new_session, const boost::system::error_code
 	start_accept();
 }
 
-void server::serve_forever(boost::asio::io_context* io_context, int port) {
+void server::serve_forever(boost::asio::io_context* io_context, int port, std::unordered_map<std::string, std::vector<std::string>>* path_map) {
 	try {
 		// Start server with port from config
 		server s(*io_context, port);

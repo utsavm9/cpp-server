@@ -10,13 +10,16 @@ class NginxConfigTest : public ::testing::Test {
 
 	void test_find_port(const char* filename, int expected) {
 		NginxConfig config;
-
+		
+		
 		boost::filesystem::path filepath(filename);
 		ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
 		ASSERT_TRUE(parser_.Parse(filename, &config)) << "Parser error on file: " << filename;
 
 		EXPECT_EQ(config.find_port(), expected);
 	}
+
+	
 };
 
 TEST_F(NginxConfigTest, FindPort) {
@@ -33,4 +36,27 @@ TEST_F(NginxConfigTest, FindPort) {
 	for (auto& p : file_ports) {
 		test_find_port(p.first, p.second);
 	}
+}
+
+TEST_F(NginxConfigTest, FindPaths) {
+	NginxConfig config;
+	auto filename = "config/find_paths";
+	boost::filesystem::path filepath(filename);
+	ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
+	ASSERT_TRUE(parser_.Parse(filename, &config)) << "Parser error on file: " << filename;
+
+	std::unordered_map<std::string, std::vector<std::string>> correct_map;
+	std::vector<std::string> static_vec{"/static", "/file"};
+	std::vector<std::string> echo_vec{"/echo", "/print"};
+
+	correct_map.insert(std::make_pair("static", static_vec));
+	correct_map.insert(std::make_pair("echo", echo_vec));
+
+	auto test_map = config.find_paths();
+
+	for (auto element : test_map){
+		ASSERT_TRUE(test_map["static"] == correct_map["static"]) << "Static paths incorrect!";
+		ASSERT_TRUE(test_map["echo"] == correct_map["echo"]) << "Echo paths incorrect!";
+	}
+	
 }

@@ -6,6 +6,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 class NginxConfig;
 
@@ -27,6 +28,11 @@ class NginxConfig {
 	// otherwise returns the default port 80.
 	// Searches for "server {listen <port_num>;}" in config. Logs invalid entries.
 	int find_port();
+
+	//Find registered paths for echo or static services in config and return them as a hashmap
+	//"static" key gives static paths
+	//"echo" key gives echo paths
+	std::unordered_map<std::string, std::vector<std::string>> find_paths();
 };
 
 // The driver that parses a config file and generates an NginxConfig.
@@ -66,4 +72,4 @@ class NginxConfigParser {
 
 // Parses the arguments to fill in the port number
 // Exits with error on missing arguments
-int parse_args(int argc, const char** argv, int* port);
+int parse_args(int argc, const char** argv, int* port, std::unordered_map<std::string, std::vector<std::string>>* path_map);

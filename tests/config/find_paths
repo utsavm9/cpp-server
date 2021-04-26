@@ -4,6 +4,10 @@ server {
 	register_paths {
 		static /static;
 
+        static /file;
+
 		echo /echo;
+
+        echo /print;
 	}
 }

@@ -17,6 +17,7 @@
 #include <stack>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 NginxConfigParser::NginxConfigParser() {}
 
@@ -45,6 +46,68 @@ int NginxConfig::find_port() {
 	}
 
 	return 80;
+}
+
+//Find registered paths for echo or static services in config and return them as a hashmap
+//"static" key gives static paths
+//"echo" key gives echo paths
+
+std::unordered_map<std::string, std::vector<std::string>> NginxConfig::find_paths(){
+	std::unordered_map<std::string, std::vector<std::string>> path_map;
+
+	for (const auto& statement : statements_) {
+		auto tokens = statement->tokens_;
+		if (tokens.size() > 0 && tokens[0] == "server") {
+			for (const auto& substatement : statement->child_block_->statements_) {
+				if (substatement->tokens_.size() > 0 && substatement->tokens_[0] == "register_paths") {
+					//Check for approprate directives in register_paths block
+
+					for (const auto& path_reg : substatement->child_block_->statements_) {
+						if (path_reg->tokens_.size() > 0 && path_reg->tokens_.size() < 3) {
+							//register static path
+
+							if(path_reg->tokens_[0] == "static" ) {
+								if(path_map.find("static") == path_map.end()){
+									std::vector<std::string> static_paths;
+									static_paths.push_back(path_reg->tokens_[1]);
+									path_map.insert(std::make_pair("static", static_paths));
+									BOOST_LOG_SEV(slg::get(), info) << "Registered static path " << path_reg->tokens_[1];
+								}
+								else {
+									path_map["static"].push_back(path_reg->tokens_[1]);
+									BOOST_LOG_SEV(slg::get(), info) << "Registered static path " << path_reg->tokens_[1];
+								}
+							}
+							// register echo path
+
+							else if (path_reg->tokens_[0] == "echo"){
+								if(path_map.find("echo") == path_map.end()){
+									std::vector<std::string> static_paths;
+									static_paths.push_back(path_reg->tokens_[1]);
+									path_map.insert(std::make_pair("echo", static_paths));
+									BOOST_LOG_SEV(slg::get(), info) << "Registered echo path " << path_reg->tokens_[1];
+								}
+								else {
+									path_map["echo"].push_back(path_reg->tokens_[1]);
+									BOOST_LOG_SEV(slg::get(), info) << "Registered echo path " << path_reg->tokens_[1];
+								}
+							}
+
+							else {
+								BOOST_LOG_SEV(slg::get(), error) << "Unexpected Directive while registering paths: " << path_reg->tokens_[0] << ". Should be echo or static!";
+							}
+						}
+
+						else{
+							BOOST_LOG_SEV(slg::get(), error) << "Malformed Directive: " << path_reg->tokens_[0] <<". Specify one path per directive!";
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return path_map;
 }
 
 const char* NginxConfigParser::TokenTypeAsString(TokenType type) {
@@ -289,7 +352,7 @@ bool NginxConfigParser::Parse(const char* file_name, NginxConfig* config) {
 	return return_value;
 }
 
-int parse_args(int argc, const char* argv[], int* port) {
+int parse_args(int argc, const char* argv[], int* port, std::unordered_map<std::string, std::vector<std::string>>* path_map) {
 	if (argc != 2) {
 		BOOST_LOG_SEV(slg::get(), fatal) << "Missing config file!, Usage: webserver <config_file_path>";
 		exit(1);
@@ -304,6 +367,8 @@ int parse_args(int argc, const char* argv[], int* port) {
 
 	// Extract the port number from config
 	*port = config.find_port();
+	auto temp = config.find_paths();
+	path_map = &temp;
 	BOOST_LOG_SEV(slg::get(), info) << "found port number " << *port ;
 	
 	return 0;

@@ -89,11 +89,13 @@ TEST_F(NginxConfigParserTest, InvalidConfigs) {
 }
 
 TEST(ParseArgs, UnitTests) {
+	std::unordered_map<std::string, std::vector<std::string>>* dummy_map;
+
 	ASSERT_DEATH(
 	    {
 		    int port;
 		    const char *argv[] = {(char *)("program-name")};
-		    parse_args(1, argv, &port);
+		    parse_args(1, argv, &port, dummy_map);
 	    },
 	    "");
 
@@ -101,13 +103,13 @@ TEST(ParseArgs, UnitTests) {
 	const char *argv_good_config[] = {
 	    (char *)("program-name"),
 	    (char *)("config/exemplar")};
-	parse_args(2, argv_good_config, &port);
+	parse_args(2, argv_good_config, &port, dummy_map);
 	EXPECT_EQ(port, 100);
 
 	port = 0;
 	const char *argv_bad_config[] = {
 	    (char *)("program-name"),
 	    (char *)("parser/missing_opening_braces_config")};
-	parse_args(2, argv_bad_config, &port);
+	parse_args(2, argv_bad_config, &port, dummy_map);
 	EXPECT_EQ(port, 80);
 }
