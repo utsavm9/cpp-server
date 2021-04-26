@@ -1,6 +1,8 @@
 #include "response_generator.h"
-#include "logger.h"
+
 #include <iostream>
+
+#include "logger.h"
 
 std::string Response_Generator::generate_response(char* read_buf, size_t bytes_transferred, size_t max_buf_size) {
 	if (bytes_transferred > (max_buf_size - 1)) {  //this method shouldn't be called with these parameters

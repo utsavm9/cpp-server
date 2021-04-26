@@ -7,8 +7,7 @@
 // How Nginx does it:
 //   http://lxr.nginx.org/source/src/core/ngx_conf_file.c
 
-#include "config_parser.h"
-#include "logger.h"
+#include "parser.h"
 
 #include <cstdio>
 #include <fstream>
@@ -16,101 +15,14 @@
 #include <memory>
 #include <stack>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
+
+#include "logger.h"
 
 NginxConfigParser::NginxConfigParser() {}
 
-int NginxConfig::find_port() {
-	for (const auto& statement : statements_) {
-		auto tokens = statement->tokens_;
-		if (tokens.size() > 0 && tokens[0] == "server") {
-			// In top-level server block
-			for (const auto& substatement : statement->child_block_->statements_) {
-				if (substatement->tokens_.size() > 0 && substatement->tokens_[0] == "listen") {
-					// In port statement
-					if (substatement->tokens_.size() == 2) {
-						try {
-							return std::stoi(substatement->tokens_[1]);
-						} catch (std::out_of_range) {
-							BOOST_LOG_SEV(slg::get(), error) << "Port Number Too Large";
-						} catch (std::invalid_argument) {
-							BOOST_LOG_SEV(slg::get(), info) << "Malformed Port Number " ;
-						}
-					} else {
-						BOOST_LOG_SEV(slg::get(), error) << "expecting exactly one port number field here";
-					}
-				}
-			}
-		}
-	}
-
-	return 80;
-}
-
-//Find registered paths for echo or static services in config and return them as a hashmap
-//"static" key gives static paths
-//"echo" key gives echo paths
-
-std::unordered_map<std::string, std::vector<std::string>> NginxConfig::find_paths(){
-	std::unordered_map<std::string, std::vector<std::string>> path_map;
-
-	for (const auto& statement : statements_) {
-		auto tokens = statement->tokens_;
-		if (tokens.size() > 0 && tokens[0] == "server") {
-			for (const auto& substatement : statement->child_block_->statements_) {
-				if (substatement->tokens_.size() > 0 && substatement->tokens_[0] == "register_paths") {
-					//Check for approprate directives in register_paths block
-
-					for (const auto& path_reg : substatement->child_block_->statements_) {
-						if (path_reg->tokens_.size() > 0 && path_reg->tokens_.size() < 3) {
-							//register static path
-
-							if(path_reg->tokens_[0] == "static" ) {
-								if(path_map.find("static") == path_map.end()){
-									std::vector<std::string> static_paths;
-									static_paths.push_back(path_reg->tokens_[1]);
-									path_map.insert(std::make_pair("static", static_paths));
-									BOOST_LOG_SEV(slg::get(), info) << "Registered static path " << path_reg->tokens_[1];
-								}
-								else {
-									path_map["static"].push_back(path_reg->tokens_[1]);
-									BOOST_LOG_SEV(slg::get(), info) << "Registered static path " << path_reg->tokens_[1];
-								}
-							}
-							// register echo path
-
-							else if (path_reg->tokens_[0] == "echo"){
-								if(path_map.find("echo") == path_map.end()){
-									std::vector<std::string> static_paths;
-									static_paths.push_back(path_reg->tokens_[1]);
-									path_map.insert(std::make_pair("echo", static_paths));
-									BOOST_LOG_SEV(slg::get(), info) << "Registered echo path " << path_reg->tokens_[1];
-								}
-								else {
-									path_map["echo"].push_back(path_reg->tokens_[1]);
-									BOOST_LOG_SEV(slg::get(), info) << "Registered echo path " << path_reg->tokens_[1];
-								}
-							}
-
-							else {
-								BOOST_LOG_SEV(slg::get(), error) << "Unexpected Directive while registering paths: " << path_reg->tokens_[0] << ". Should be echo or static!";
-							}
-						}
-
-						else{
-							BOOST_LOG_SEV(slg::get(), error) << "Malformed Directive: " << path_reg->tokens_[0] <<". Specify one path per directive!";
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return path_map;
-}
-
-const char* NginxConfigParser::TokenTypeAsString(TokenType type) {
+const char *NginxConfigParser::TokenTypeAsString(TokenType type) {
 	switch (type) {
 	case TOKEN_TYPE_START:
 		return "TOKEN_TYPE_START";
@@ -133,8 +45,8 @@ const char* NginxConfigParser::TokenTypeAsString(TokenType type) {
 	}
 }
 
-NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream* input,
-                                                           std::string* value) {
+NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream *input,
+                                                           std::string *value) {
 	TokenParserState state = TOKEN_STATE_INITIAL_WHITESPACE;
 	if (input == nullptr || value == nullptr) {
 		return TOKEN_TYPE_ERROR;
@@ -246,12 +158,12 @@ NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream* input,
 	return TOKEN_TYPE_EOF;
 }
 
-bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
+bool NginxConfigParser::Parse(std::istream *config_file, NginxConfig *config) {
 	if (config == nullptr) {
 		return false;
 	}
 
-	std::stack<NginxConfig*> config_stack;
+	std::stack<NginxConfig *> config_stack;
 	config_stack.push(config);
 	TokenType last_token_type = TOKEN_TYPE_START;
 	TokenType token_type;
@@ -297,7 +209,7 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
 				// Error.
 				break;
 			}
-			NginxConfig* const new_config = new NginxConfig;
+			NginxConfig *const new_config = new NginxConfig;
 			config_stack.top()->statements_.back().get()->child_block_.reset(
 			    new_config);
 			config_stack.push(new_config);
@@ -338,7 +250,7 @@ bool NginxConfigParser::Parse(std::istream* config_file, NginxConfig* config) {
 	return false;
 }
 
-bool NginxConfigParser::Parse(const char* file_name, NginxConfig* config) {
+bool NginxConfigParser::Parse(const char *file_name, NginxConfig *config) {
 	std::ifstream config_file;
 	config_file.open(file_name);
 	if (!config_file.is_open()) {
@@ -347,29 +259,35 @@ bool NginxConfigParser::Parse(const char* file_name, NginxConfig* config) {
 	}
 
 	const bool return_value =
-	    Parse(dynamic_cast<std::istream*>(&config_file), config);
+	    Parse(dynamic_cast<std::istream *>(&config_file), config);
 	config_file.close();
 	return return_value;
 }
 
-int parse_args(int argc, const char* argv[], int* port, std::unordered_map<std::string, std::vector<std::string>>* path_map) {
+int NginxConfigParser::parse_args(int argc, const char *argv[], NginxConfig *config) {
+	BOOST_LOG_SEV(slg::get(), info) << "starting to parse program arguments";
+
 	if (argc != 2) {
-		BOOST_LOG_SEV(slg::get(), fatal) << "Missing config file!, Usage: webserver <config_file_path>";
+		BOOST_LOG_SEV(slg::get(), fatal) << "missing config file, usage: webserver <config_file_path>";
 		exit(1);
+	}
+
+	if (config == nullptr) {
+		BOOST_LOG_SEV(slg::get(), fatal) << "need a config to store the parsed arguments, given nullptr";
+		exit(2);
 	}
 
 	// Parse the config
 	NginxConfigParser config_parser;
-	NginxConfig config;
-	if (!config_parser.Parse(argv[1], &config)) {
-		BOOST_LOG_SEV(slg::get(), fatal) << "Failed to parse config! ";
+	if (!config_parser.Parse(argv[1], config)) {
+		BOOST_LOG_SEV(slg::get(), fatal) << "failed to parse config";
 	}
+	BOOST_LOG_SEV(slg::get(), info) << "parsed the raw config";
 
-	// Extract the port number from config
-	*port = config.find_port();
-	auto temp = config.find_paths();
-	path_map = &temp;
-	BOOST_LOG_SEV(slg::get(), info) << "found port number " << *port ;
-	
+	// Extract relevent information from raw config
+	config->extract_port();
+	config->extract_targets();
+	config->free_memory();
+
 	return 0;
 }

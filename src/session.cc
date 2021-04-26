@@ -3,10 +3,18 @@
 #include <boost/asio.hpp>
 #include <boost/bind.hpp>
 
+#include "config.h"
+#include "logger.h"
+
 using boost::asio::ip::tcp;
 
-session::session(boost::asio::io_context& io_context)
-    : socket_(io_context) {
+session::session(boost::asio::io_context& io_context, NginxConfig* c)
+    : socket_(io_context), config(c) {
+	BOOST_LOG_SEV(slg::get(), info) << "constructed a new session";
+}
+
+session::~session() {
+	BOOST_LOG_SEV(slg::get(), info) << "session closed";
 }
 
 tcp::socket& session::socket() {

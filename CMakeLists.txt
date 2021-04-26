@@ -34,7 +34,8 @@ message(STATUS "Boost version: ${Boost_VERSION}")
 
 # Include our header files
 include_directories(include)
-add_library(parser src/config_parser.cc)
+add_library(parser src/parser.cc)
+add_library(config src/config.cc)
 add_library(session src/session.cc)
 add_library(server src/server.cc)
 add_library(response_generator src/response_generator.cc)
@@ -42,20 +43,24 @@ add_library(logger src/logger.cc)
 
 # Generate the server executable
 add_executable(webserver src/main.cc)
-target_link_libraries(webserver parser logger server Boost::system pthread Boost::filesystem
-Boost::regex Boost::log_setup Boost::log)
+target_link_libraries(webserver config parser logger server Boost::system pthread Boost::filesystem Boost::regex Boost::log_setup Boost::log)
+target_link_libraries(config parser)
 target_link_libraries(server session response_generator)
 
 # Generate the test executable
 add_executable(unit_tests tests/parser_test.cc tests/config_test.cc tests/server_test.cc tests/response_generator_test.cc tests/logger_test.cc)
-target_link_libraries(unit_tests parser server logger response_generator gtest_main Boost::filesystem Boost::filesystem Boost::regex Boost::log_setup Boost::log)
+target_link_libraries(unit_tests 
+	parser config server logger response_generator 
+	gtest_main 
+	Boost::filesystem Boost::filesystem Boost::regex Boost::log_setup Boost::log
+)
 
 # Unit tests
 gtest_discover_tests(unit_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 # Coverage Report
 include(cmake/CodeCoverageReportConfig.cmake)
-generate_coverage_report(TARGETS webserver parser session server logger response_generator TESTS unit_tests)
+generate_coverage_report(TARGETS webserver parser config session server logger response_generator TESTS unit_tests)
 
 # Integration tests
 file(GLOB_RECURSE TestDriver */integration/testDriver.sh)

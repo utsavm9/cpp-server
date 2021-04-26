@@ -3,14 +3,21 @@
 #include <boost/asio.hpp>
 #include <unordered_map>
 
+#include "config.h"
 #include "session.h"
 
 class server {
    public:
-	server(boost::asio::io_context& io_context, short port);
+	server(boost::asio::io_context& io_context, NginxConfig config);
 
 	// starts a server and block until an exception occurs
-	static void serve_forever(boost::asio::io_context* io_context, int port, std::unordered_map<std::string, std::vector<std::string>>* path_map);
+	static void serve_forever(boost::asio::io_context* io_context, NginxConfig& config);
+
+	// Registers the server closing function to be run as server received SIGINT to shutdown
+	static void register_server_sigint();
+
+	// Server SIGINT handler, logs program and exists without calling any destructors
+	static void server_sigint(int s);
 
    private:
 	void start_accept();
@@ -19,4 +26,5 @@ class server {
 
 	boost::asio::io_context& io_context_;
 	tcp::acceptor acceptor_;
+	NginxConfig config_;
 };

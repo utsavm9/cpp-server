@@ -1,62 +1,118 @@
 #include <boost/filesystem.hpp>
 
-#include "config_parser.h"
+#include "config.h"
+#include "parser.h"
 #include "gtest/gtest.h"
 
 class NginxConfigTest : public ::testing::Test {
-   protected:
-	int default_port = 80;
-	NginxConfigParser parser_;
+protected:
+    int unchanged = -100;
+    NginxConfigParser parser_;
 
-	void test_find_port(const char* filename, int expected) {
-		NginxConfig config;
-		
-		
-		boost::filesystem::path filepath(filename);
-		ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
-		ASSERT_TRUE(parser_.Parse(filename, &config)) << "Parser error on file: " << filename;
+    void test_extract_port(const char *filename, int expected) {
+        NginxConfig config;
 
-		EXPECT_EQ(config.find_port(), expected);
-	}
+        boost::filesystem::path filepath(filename);
+        ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
+        ASSERT_TRUE(parser_.Parse(filename, &config)) << "Parser error on file: " << filename;
 
-	
+        config.port = unchanged;
+        config.extract_port();
+        EXPECT_EQ(config.port, expected);
+    }
 };
 
-TEST_F(NginxConfigTest, FindPort) {
-	std::pair<const char*, int> file_ports[]{
-	    {"config/exemplar", 100},
-	    {"config/missing_listen", default_port},
-	    {"config/missing_port", default_port},
-	    {"config/missing_server", default_port},
-	    {"config/non_numeric_port", default_port},
-	    {"config/too_long_port", default_port},
-	    {"config/wrong_listen_format", default_port},
-	};
+TEST_F(NginxConfigTest, ExtractPort) {
+    std::pair<const char *, int> file_ports[]{
+        {"config/exemplar", 100},
+        {"config/missing_listen", unchanged},
+        {"config/missing_port", unchanged},
+        {"config/missing_server", unchanged},
+        {"config/non_numeric_port", unchanged},
+        {"config/too_long_port", unchanged},
+        {"config/wrong_listen_format", unchanged},
+    };
 
-	for (auto& p : file_ports) {
-		test_find_port(p.first, p.second);
-	}
+    for (auto &p : file_ports) {
+        test_extract_port(p.first, p.second);
+    }
 }
 
-TEST_F(NginxConfigTest, FindPaths) {
-	NginxConfig config;
-	auto filename = "config/find_paths";
-	boost::filesystem::path filepath(filename);
-	ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
-	ASSERT_TRUE(parser_.Parse(filename, &config)) << "Parser error on file: " << filename;
+TEST_F(NginxConfigTest, ParseArgs) {
+    ASSERT_DEATH(
+        {
+            NginxConfig config;
+            const char *argv[] = {(char *)("program-name")};
+            NginxConfigParser::parse_args(1, argv, &config);
+        },
+        "");
 
-	std::unordered_map<std::string, std::vector<std::string>> correct_map;
-	std::vector<std::string> static_vec{"/static", "/file"};
-	std::vector<std::string> echo_vec{"/echo", "/print"};
+    ASSERT_DEATH(
+        {
+            const char *argv[] = {(char *)("program-name", "conf-file")};
+            NginxConfigParser::parse_args(1, argv, nullptr);
+        },
+        "");
 
-	correct_map.insert(std::make_pair("static", static_vec));
-	correct_map.insert(std::make_pair("echo", echo_vec));
+    {
+        NginxConfig config;
+        const char *argv_good_config[] = {
+            (char *)("program-name"),
+            (char *)("config/exemplar")};
+        NginxConfigParser::parse_args(2, argv_good_config, &config);
+        EXPECT_EQ(config.port, 100);
+    }
 
-	auto test_map = config.find_paths();
+    {
+        NginxConfig config;
+        config.port = 99;
+        const char *argv_bad_config[] = {
+            (char *)("program-name"),
+            (char *)("parser/missing_opening_braces_config")};
+        NginxConfigParser::parse_args(2, argv_bad_config, &config);
+        EXPECT_EQ(config.port, 99);
+    }
+}
 
-	for (auto element : test_map){
-		ASSERT_TRUE(test_map["static"] == correct_map["static"]) << "Static paths incorrect!";
-		ASSERT_TRUE(test_map["echo"] == correct_map["echo"]) << "Echo paths incorrect!";
-	}
-	
+TEST_F(NginxConfigTest, ExtractTargets) {
+    NginxConfig config;
+	std::string filename;
+    boost::filesystem::path filepath;
+
+	// Valid config
+    filename = "config/find_paths";
+    filepath = boost::filesystem::path(filename);
+    ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
+    ASSERT_TRUE(parser_.Parse("config/find_paths", &config)) << "Parser error on file: " << filename;
+
+    config.extract_targets();
+
+	EXPECT_EQ(config.targets["static"], std::vector<std::string>({"/static", "/file"}));
+	EXPECT_EQ(config.targets["echo"], std::vector<std::string>({"/echo", "/print"}));
+	config.free_memory();
+
+
+    // Invalid config
+	filename = "config/unknown_target";
+    filepath = boost::filesystem::path(filename);
+    ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
+    ASSERT_TRUE(parser_.Parse("config/unknown_target", &config)) << "Parser error on file: " << filename;
+
+    config.targets = std::unordered_map<std::string, std::vector<std::string>>{};
+	config.extract_targets();
+
+	EXPECT_EQ(config.targets.size(), 0);
+    config.free_memory();
+
+    // Invalid config
+	filename = "config/multiple_static_paths_err";
+    filepath = boost::filesystem::path(filename);
+    ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
+    ASSERT_TRUE(parser_.Parse("config/multiple_static_paths_err", &config)) << "Parser error on file: " << filename;
+
+    config.targets = std::unordered_map<std::string, std::vector<std::string>>{};
+	config.extract_targets();
+
+	EXPECT_EQ(config.targets.size(), 0);
+    config.free_memory();
 }

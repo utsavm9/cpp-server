@@ -1,0 +1,7 @@
+server {
+	listen 81;
+
+	register_paths {
+		static /static /file;
+	}
+}

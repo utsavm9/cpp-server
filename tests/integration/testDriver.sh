@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 TESTDRIVER="$0"
 WEBSERVER="$1"
@@ -21,7 +21,7 @@ if [ ! -x "${WEBSERVER}" ]; then
 fi
 
 NUM_REGEX='^[0-9]+$'
-if [ ! "$PORT" =~ "$NUM_REGEX" ]; then
+if [[ ! "$PORT" =~ $NUM_REGEX ]]; then
 	echo "Usage: ${0} <path-to-webserver> <port-num>"
 	warn "got '$PORT' as the port number, integer expected"
 	exit 1

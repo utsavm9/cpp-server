@@ -2,13 +2,15 @@
 
 #include <boost/asio.hpp>
 
+#include "config.h"
 #include "response_generator.h"
 
 using boost::asio::ip::tcp;
 
 class session {
    public:
-	session(boost::asio::io_context& io_context);
+	session(boost::asio::io_context& io_context, NginxConfig* c);
+	~session();
 
 	tcp::socket& socket();
 	void start();
@@ -19,6 +21,7 @@ class session {
 
 	tcp::socket socket_;
 
+	NginxConfig* config;
 	Response_Generator response_generator_;
 
 	enum { max_length = 1024 };
