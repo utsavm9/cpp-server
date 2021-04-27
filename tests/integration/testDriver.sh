@@ -33,6 +33,18 @@ start() {
 	local CONFIG="
 		server {
 			listen $PORT;
+
+			register_paths {
+				/static static {
+					root ../data/static_data/;
+				}
+
+				/echo echo {
+				}
+
+				/print echo {
+				}
+			}
 		}
 	"
 
@@ -66,53 +78,57 @@ stop() {
 	fi
 }
 
-test_nc() {
+test_header() {
 	local OUTPUT="$DIR/output"
-	local EXPECTED="$DIR/expected"
-	local REQUEST="$1"
-	local RESPONSE="$2"
+	local HEADER="$DIR/header"
+	local URL="$1"
+	local SEARCH="$2"
 
-	printf "$REQUEST" | nc -q0 localhost $PORT >"$OUTPUT"
-	printf "$RESPONSE" >"$EXPECTED"
+	curl -s -o "$OUTPUT" -D "$HEADER" localhost:"$PORT""$URL"
 
-	DIFF_OUT=$(diff "$EXPECTED" "$OUTPUT")
-	DIFF_RET=$?
+	grep "$SEARCH" "$HEADER"
+	GREP_RET=$?
 	OUTPUT_CONTENT=$(cat "$OUTPUT")
+	HEADER_CONTENT=$(cat "$HEADER")
 
 	rm "$OUTPUT"
-	rm "$EXPECTED"
+	rm "$HEADER"
 
-	if [ $DIFF_RET -ne 0 ]; then
-		warn "server response did not match expected response"
-		echo "Request passed to server:"
-		echo "$REQUEST"
+	if [ $GREP_RET -ne 0 ]; then
+		warn "server response header was not expected for $URL" 
 		echo "Response obtained from server:"
-		echo "$OUTPUT_CONTENT"
-		echo "Diff <expected >actual"
-		echo "$DIFF_OUT"
+		echo "$HEADER_CONTENT"
+		echo "Expected to see:"
+		echo "$SEARCH"
 
 		stop
 		exit 1
 	fi
 }
 
-test_curl() {
+
+test_body() {
 	local OUTPUT="$DIR/output"
-	local EXPECTED="$DIR/expected"
-	local BODY="$1"
+	local HEADER="$DIR/header"
+	local URL="$1"
+	local SEARCH="$2"
 
-	curl -o "$OUTPUT" -s localhost:"$PORT" --data "$BODY"
+	curl -s -o "$OUTPUT" -D "$HEADER" localhost:"$PORT""$URL"
 
-	grep "Request was malformed." "$OUTPUT"
+	grep "$SEARCH" "$OUTPUT"
 	GREP_RET=$?
 	OUTPUT_CONTENT=$(cat "$OUTPUT")
+	HEADER_CONTENT=$(cat "$HEADER")
 
 	rm "$OUTPUT"
+	rm "$HEADER"
 
 	if [ $GREP_RET -ne 0 ]; then
-		warn "server response did not echo the body"
+		warn "server response body was not expected for $URL" 
 		echo "Response obtained from server:"
-		echo "$OUTPUT_CONTENT"
+		echo "$OUTPUT"
+		echo "Expected to see:"
+		echo "$SEARCH"
 
 		stop
 		exit 1
@@ -122,7 +138,25 @@ test_curl() {
 # Integration tests
 start
 
-BODY="Full-fledged HTTP request body"
-test_curl "$BODY"
+test_header "/" "400 Bad Request"
+test_header "/not/in/config" "400 Bad Request"
+
+test_header "/static/" "404 Not Found"
+test_header "/static/missing" "404 Not Found"
+test_header "/static/deep/folders" "404 Not Found"
+
+test_header "/echo" "200 OK"
+test_header "/print" "200 OK"
+test_header "/print/deep/folders" "200 OK"
+test_header "/static/test.html" "200 OK"
+test_header "/static/testing-zip.zip" "200 OK"
+test_header "/static/../static/test.html" "200 OK"
+
+test_header "/echo" "text/plain"
+test_header "/static/test.html" "text/html"
+test_header "/static/testing-zip.zip" "application/zip"
+
+test_body "/echo" "GET"
+test_body "/static/test.html" "<html"
 
 stop
