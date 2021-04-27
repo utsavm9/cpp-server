@@ -1,5 +1,5 @@
 #include <boost/filesystem.hpp>
-
+#include <iostream>
 #include "config.h"
 #include "parser.h"
 #include "gtest/gtest.h"
@@ -87,21 +87,34 @@ TEST_F(NginxConfigTest, ExtractTargets) {
 
     config.extract_targets();
 
-	EXPECT_EQ(config.targets["static"], std::vector<std::string>({"/static", "/file"}));
-	EXPECT_EQ(config.targets["echo"], std::vector<std::string>({"/echo", "/print"}));
+	std::cout << config.urlToServiceName[0].second << std::endl;
+	std::cout << config.urlToServiceName[1].second << std::endl;
+	std::cout << config.urlToServiceName[2].second << std::endl;
+	std::cout << config.urlToServiceName[3].second << std::endl;
+
+	EXPECT_EQ(config.urlToServiceName[0].second, "static" );
+	EXPECT_EQ(config.urlToServiceName[1].second, "static" );
+	EXPECT_EQ(config.urlToServiceName[2].second, "echo" );
+	EXPECT_EQ(config.urlToServiceName[3].second, "echo" );
+	EXPECT_EQ(config.urlToLinux["/static"], "/static_data");
+	EXPECT_EQ(config.urlToLinux["/file"], "/static_data_1");
 	config.free_memory();
 
 
+
+	/*
     // Invalid config
 	filename = "config/unknown_target";
     filepath = boost::filesystem::path(filename);
     ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
     ASSERT_TRUE(parser_.Parse("config/unknown_target", &config)) << "Parser error on file: " << filename;
 
-    config.targets = std::unordered_map<std::string, std::vector<std::string>>{};
+    config.urlToServiceName =  std::vector<std::pair<std::string,std::string>>{};
+	config.urlToLinux = std::unordered_map<std::string,std::string>{};
 	config.extract_targets();
 
-	EXPECT_EQ(config.targets.size(), 0);
+	EXPECT_EQ(config.urlToLinux.size(), 0);
+	EXPECT_EQ(config.urlToServiceName[0].second,"static");
     config.free_memory();
 
     // Invalid config
@@ -110,9 +123,12 @@ TEST_F(NginxConfigTest, ExtractTargets) {
     ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
     ASSERT_TRUE(parser_.Parse("config/multiple_static_paths_err", &config)) << "Parser error on file: " << filename;
 
-    config.targets = std::unordered_map<std::string, std::vector<std::string>>{};
+    config.urlToServiceName =  std::vector<std::pair<std::string,std::string>>{};
+	config.urlToLinux = std::unordered_map<std::string,std::string>{};
 	config.extract_targets();
 
-	EXPECT_EQ(config.targets.size(), 0);
+	EXPECT_EQ(config.urlToLinux.size(), 0);
+	EXPECT_EQ(config.urlToServiceName.size(),0);
     config.free_memory();
+	*/
 }

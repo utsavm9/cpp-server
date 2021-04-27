@@ -2,6 +2,8 @@ server {
 	listen 81;
 
 	register_paths {
-		images /file;
+		/static static {
+			wrong /file;
+		}
 	}
 }

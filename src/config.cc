@@ -20,8 +20,7 @@
 #include "logger.h"
 #include "parser.h"
 
-NginxConfig::NginxConfig() : port(80),
-                             targets{{"echo", {"/"}}, {"static", {"/"}}} {
+NginxConfig::NginxConfig() : port(80), urlToLinux{}, urlToServiceName{} {
 }
 
 void NginxConfig::free_memory() {
@@ -55,7 +54,9 @@ void NginxConfig::extract_port() {
 }
 
 void NginxConfig::extract_targets() {
-	std::unordered_map<std::string, std::vector<std::string>> path_map;
+	std::vector<std::pair<std::string, std::string>> urlToServiceNameMap;
+	std::unordered_map<std::string, std::string> urlToLinuxMap;
+
 
 	for (const auto &statement : statements_) {
 		auto tokens = statement->tokens_;
@@ -65,43 +66,22 @@ void NginxConfig::extract_targets() {
 					//Check for approprate directives in register_paths block
 
 					for (const auto &path_reg : substatement->child_block_->statements_) {
-						if (path_reg->tokens_.size() > 0 && path_reg->tokens_.size() < 3) {
-							//register static path
-
-							if (path_reg->tokens_[0] == "static") {
-								if (path_map.find("static") == path_map.end()) {
-									std::vector<std::string> static_paths;
-									static_paths.push_back(path_reg->tokens_[1]);
-									path_map.insert(std::make_pair("static", static_paths));
-									BOOST_LOG_SEV(slg::get(), info) << "Registered static path " << path_reg->tokens_[1];
-								} else {
-									path_map["static"].push_back(path_reg->tokens_[1]);
-									BOOST_LOG_SEV(slg::get(), info) << "Registered static path " << path_reg->tokens_[1];
+						if (path_reg->tokens_.size() > 0 && path_reg->tokens_.size() < 3){
+							urlToServiceNameMap.push_back(std::make_pair(path_reg->tokens_[0], path_reg->tokens_[1]));
+							if(path_reg->tokens_[1] == "static"){
+								for (const auto &st_substatement: path_reg->child_block_->statements_) {
+									if(st_substatement->tokens_[0] == "root"){
+										urlToLinuxMap.insert(std::make_pair(path_reg->tokens_[0], st_substatement->tokens_[1]));
+									}
+									else{
+										BOOST_LOG_SEV(slg::get(), error) << "Unexpected directive " << path_reg->tokens_[0];
+									}
 								}
-							}
-							// register echo path
-
-							else if (path_reg->tokens_[0] == "echo") {
-								if (path_map.find("echo") == path_map.end()) {
-									std::vector<std::string> static_paths;
-									static_paths.push_back(path_reg->tokens_[1]);
-									path_map.insert(std::make_pair("echo", static_paths));
-									BOOST_LOG_SEV(slg::get(), info) << "Registered echo path " << path_reg->tokens_[1];
-								} else {
-									path_map["echo"].push_back(path_reg->tokens_[1]);
-									BOOST_LOG_SEV(slg::get(), info) << "Registered echo path " << path_reg->tokens_[1];
-								}
-							}
-
-							else {
-								BOOST_LOG_SEV(slg::get(), error) << "Unexpected Directive while registering paths: " << path_reg->tokens_[0] << ". Should be echo or static!";
-								return;
 							}
 						}
 
 						else {
-							BOOST_LOG_SEV(slg::get(), error) << "Malformed Directive: " << path_reg->tokens_[0] << ". Specify one path per directive!";
-							return;
+							BOOST_LOG_SEV(slg::get(), error) << "Malformed Path registration: " << path_reg->tokens_[0];
 						}
 					}
 				}
@@ -109,5 +89,6 @@ void NginxConfig::extract_targets() {
 		}
 	}
 
-	targets = path_map;
+	urlToServiceName = urlToServiceNameMap;
+	urlToLinux = urlToLinuxMap;
 }

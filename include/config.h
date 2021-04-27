@@ -45,6 +45,9 @@ class NginxConfig {
 	// Supports "static" action, default is "/"
 	void extract_targets();
 
-	// Hashmap mapping potential actions to target paths
-	std::unordered_map<std::string, std::vector<std::string>> targets;
+	// Mapping target url paths to potential services
+	std::vector<std::pair<std::string,std::string>> urlToServiceName;
+
+	// Hashmap mapping url paths to filesystem
+	std::unordered_map<std::string, std::string> urlToLinux;
 };

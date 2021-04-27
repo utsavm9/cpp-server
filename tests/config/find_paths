@@ -2,12 +2,20 @@ server {
 	listen 81;
 
 	register_paths {
-		static /static;
+		/static static {
+            root /static_data;
+        }
 
-        static /file;
+        /file static{
+            root /static_data_1;
+        } 
 
-		echo /echo;
+		/echo echo {
 
-        echo /print;
+        }
+        
+        /print echo {
+
+        }
 	}
 }
