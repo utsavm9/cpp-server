@@ -47,10 +47,6 @@ server::server(boost::asio::io_context& io_context, NginxConfig c)
 	}
 	BOOST_LOG_SEV(slg::get(), info) << "registered " << service_handlers.size() << " services";
 
-	for (auto field : config_.urlToLinux) {
-		std::cout << field.first << " " << field.second << std::endl;
-	}
-
 	start_accept();
 }
 

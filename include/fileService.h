@@ -18,6 +18,8 @@ class FileService : public Service {
 	bool can_handle(http::request<http::string_body> req);
 
    private:
+	std::string get_mime(std::string target);
+
 	std::string url_prefix;
 	fs::path linux_dir;
 };

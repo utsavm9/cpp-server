@@ -45,7 +45,7 @@ std::string FileService::make_response(http::request<http::string_body> req) {
 
 	res.version(11);  // HTTP/1.1
 	res.result(http::status::ok);
-	res.set(http::field::content_type, "text/plain");  //TODO:Mime-Type
+	res.set(http::field::content_type, get_mime(target));
 	res.set(http::field::server, "koko.cs130.org");
 	res.body() = filebody;
 	res.prepare_payload();
@@ -75,4 +75,41 @@ bool FileService::can_handle(http::request<http::string_body> req) {
 	// Check if this service is supposed to serve this target
 	int prefix_len = url_prefix.size();
 	return prefix_len <= target.size() && target.substr(0, prefix_len) == url_prefix;
+}
+
+std::string getExtension(std::string filename) {
+	auto pos = filename.rfind(".");
+	if (pos == std::string::npos) {
+		return "";
+	}
+	return filename.substr(pos);
+}
+
+// Adapted from
+// https://www.boost.org/doc/libs/develop/libs/beast/example/advanced/server/advanced_server.cpp
+std::string FileService::get_mime(std::string target) {
+	std::string extension = getExtension(target);
+	if (extension == ".htm") return "text/html";
+	if (extension == ".html") return "text/html";
+	if (extension == ".php") return "text/html";
+	if (extension == ".css") return "text/css";
+	if (extension == ".txt") return "text/plain";
+	if (extension == ".js") return "application/javascript";
+	if (extension == ".json") return "application/json";
+	if (extension == ".xml") return "application/xml";
+	if (extension == ".swf") return "application/x-shockwave-flash";
+	if (extension == ".flv") return "video/x-flv";
+	if (extension == ".png") return "image/png";
+	if (extension == ".jpe") return "image/jpeg";
+	if (extension == ".jpeg") return "image/jpeg";
+	if (extension == ".jpg") return "image/jpeg";
+	if (extension == ".gif") return "image/gif";
+	if (extension == ".bmp") return "image/bmp";
+	if (extension == ".ico") return "image/vnd.microsoft.icon";
+	if (extension == ".tiff") return "image/tiff";
+	if (extension == ".tif") return "image/tiff";
+	if (extension == ".svg") return "image/svg+xml";
+	if (extension == ".svgz") return "image/svg+xml";
+	if (extension == ".zip") return "application/zip";
+	return "text/plain";
 }
