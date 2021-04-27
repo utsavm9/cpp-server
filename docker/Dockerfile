@@ -19,6 +19,7 @@ FROM koko:base as deploy
 # Copy server output binary to "."
 COPY --from=builder /usr/src/project/build/bin/webserver .
 COPY --from=builder /usr/src/project/conf/deploy.conf .
+COPY --from=builder /usr/src/project/data .
 
 # Expose some port(s)
 EXPOSE 80
