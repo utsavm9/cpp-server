@@ -60,7 +60,7 @@ gtest_discover_tests(unit_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/te
 
 # Coverage Report
 include(cmake/CodeCoverageReportConfig.cmake)
-generate_coverage_report(TARGETS webserver parser config session server logger response_generator TESTS unit_tests)
+generate_coverage_report(TARGETS webserver parser config session server logger TESTS unit_tests)
 
 # Integration tests
 file(GLOB_RECURSE TestDriver */integration/testDriver.sh)
