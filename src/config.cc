@@ -20,7 +20,7 @@
 #include "logger.h"
 #include "parser.h"
 
-NginxConfig::NginxConfig() : port(80), urlToLinux{}, urlToServiceName{{"/", "echo"}} {
+NginxConfig::NginxConfig() : port(80), urlToServiceName{{"/", "echo"}}, urlToLinux{} {
 }
 
 void NginxConfig::free_memory() {
@@ -39,9 +39,9 @@ void NginxConfig::extract_port() {
 						try {
 							port = std::stoi(substatement->tokens_[1]);
 							BOOST_LOG_SEV(slg::get(), info) << "extracted port number from config, setting port " << port;
-						} catch (std::out_of_range) {
+						} catch (std::out_of_range const&) {
 							BOOST_LOG_SEV(slg::get(), error) << "Port Number Too Large";
-						} catch (std::invalid_argument) {
+						} catch (std::invalid_argument const&) {
 							BOOST_LOG_SEV(slg::get(), info) << "Malformed Port Number ";
 						}
 					} else {

@@ -19,7 +19,7 @@ class server {
 	static void register_server_sigint();
 
 	// Server SIGINT handler, logs program and exists without calling any destructors
-	static void server_sigint(int s);
+	static void server_sigint(__attribute__((unused)) int s);
 
    private:
 	NginxConfigParser config_parser;
@@ -32,6 +32,6 @@ class server {
 	void handle_accept(session* new_session, const boost::system::error_code& error);
 
 	boost::asio::io_context& io_context_;
-	tcp::acceptor acceptor_;
 	NginxConfig config_;
+	tcp::acceptor acceptor_;
 };

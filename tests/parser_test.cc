@@ -70,7 +70,6 @@ TEST_F(NginxConfigParserTest, ValidConfigs) {
 
 TEST_F(NginxConfigParserTest, InvalidConfigs) {
 	config_expect_fail("non-existant-file");
-	NginxConfigParser *parser = new NginxConfigParser();
 
 	const char *files[] = {
 	    "parser/invalid_config",

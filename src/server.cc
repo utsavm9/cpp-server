@@ -75,7 +75,7 @@ void server::register_server_sigint() {
 	sigaction(SIGINT, &sigIntHandler, NULL);
 }
 
-void server::server_sigint(int s) {
+void server::server_sigint(__attribute__((unused)) int s) {
 	BOOST_LOG_SEV(slg::get(), warning) << "received SIGINT, ending execution";
 	exit(130);
 }

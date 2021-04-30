@@ -51,8 +51,10 @@ TEST_F(NginxConfigTest, ParseArgs) {
 
 	ASSERT_DEATH(
 	    {
-		    const char *argv[] = {(char *)("program-name", "conf-file")};
-		    NginxConfigParser::parse_args(1, argv, nullptr);
+		    const char *argv[2];
+		    argv[0] = (char *)("program-name");
+		    argv[1] = (char *)("file_name");
+		    NginxConfigParser::parse_args(2, argv, nullptr);
 	    },
 	    "");
 

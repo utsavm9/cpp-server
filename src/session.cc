@@ -12,10 +12,9 @@ using error_code = boost::system::error_code;
 namespace http = boost::beast::http;
 
 session::session(boost::asio::io_context& io_context, NginxConfig* c, std::vector<Service*>& s, int max_len)
-    : socket_(io_context), config(c), max_length(max_len), service_handlers(s) {
+    : socket_(io_context), config(c), service_handlers(s), max_length(max_len) {
 	BOOST_LOG_SEV(slg::get(), info) << "constructed a new session";
 	data_ = new char[max_length];
-	service_handlers = s;
 }
 
 session::~session() {
@@ -60,7 +59,7 @@ void session::handle_write(const boost::system::error_code& error) {
 }
 
 std::string session::construct_response(size_t bytes_transferred) {
-	if (bytes_transferred > max_length) {  //this method shouldn't be called with these parameters
+	if ((int)bytes_transferred > max_length) {  //this method shouldn't be called with these parameters
 		BOOST_LOG_SEV(slg::get(), error) << "session received a request which was larger than the maximum it could handle, internal server error";
 		return Service::internal_server_error();
 	}

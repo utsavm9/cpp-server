@@ -10,10 +10,10 @@ class Service {
    public:
 	// Returns a response as a string for the given request
 	// Call can_handle first to ensure that this service wants to serve the request
-	virtual std::string make_response(http::request<http::string_body> req);
+	virtual std::string make_response(__attribute__((unused)) http::request<http::string_body> req);
 
 	// Returns true if this service can make a 200 OK response for the given request
-	virtual bool can_handle(http::request<http::string_body> req);
+	virtual bool can_handle(__attribute__((unused)) http::request<http::string_body> req);
 
 	// Returns a 400 bad request
 	static std::string bad_request();

@@ -25,9 +25,9 @@ std::string EchoService::make_response(http::request<http::string_body> req) {
 
 bool EchoService::can_handle(http::request<http::string_body> req) {
 	std::string target(req.target());
-	int prefix_len = url_prefix.size();
+	size_t prefix_len = url_prefix.size();
 
-	if (prefix_len <= target.size() && target.substr(0, prefix_len) == url_prefix) {
+	if (prefix_len <= (target.size()) && target.substr(0, prefix_len) == url_prefix) {
 		return true;
 	} else {
 		BOOST_LOG_SEV(slg::get(), info) << "denying to serve request";

@@ -66,3 +66,6 @@ generate_coverage_report(TARGETS webserver parser config session server services
 file(GLOB_RECURSE TestDriver */integration/testDriver.sh)
 add_test(NAME IntegrationTests 
          COMMAND ${TestDriver} $<TARGET_FILE:webserver> 8080)
+
+# Set Compiler Warnings
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra")

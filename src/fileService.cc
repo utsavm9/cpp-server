@@ -73,7 +73,7 @@ bool FileService::can_handle(http::request<http::string_body> req) {
 	}
 
 	// Check if this service is supposed to serve this target
-	int prefix_len = url_prefix.size();
+	size_t prefix_len = url_prefix.size();
 	return prefix_len <= target.size() && target.substr(0, prefix_len) == url_prefix;
 }
 
