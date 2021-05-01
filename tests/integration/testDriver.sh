@@ -34,18 +34,15 @@ start() {
 		server {
 			listen $PORT;
 
-			register_paths {
-				/static static {
-					root ../data/static_data/;
-				}
-
-				/echo echo {
-				}
-
-				/print echo {
-				}
-			}
+		static {
+			/static ../data/static_data;
 		}
+
+		echo {
+			/echo;
+			/print;
+		}
+	}
 	"
 
 	# Check if port is free

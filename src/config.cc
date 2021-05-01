@@ -54,39 +54,41 @@ void NginxConfig::extract_port() {
 }
 
 void NginxConfig::extract_targets() {
-	std::vector<std::pair<std::string, std::string>> urlToServiceNameMap;
-	std::unordered_map<std::string, std::string> urlToLinuxMap;
+	urlToLinux.clear();
+	urlToServiceName.clear();
 
 	for (const auto &statement : statements_) {
 		auto tokens = statement->tokens_;
 		if (tokens.size() > 0 && tokens[0] == "server") {
 			for (const auto &substatement : statement->child_block_->statements_) {
-				if (substatement->tokens_.size() > 0 && substatement->tokens_[0] == "register_paths") {
-					//Check for approprate directives in register_paths block
-
+				if (substatement->tokens_.size() > 0 && substatement->tokens_[0] == "static") {
 					for (const auto &path_reg : substatement->child_block_->statements_) {
-						if (path_reg->tokens_.size() > 0 && path_reg->tokens_.size() < 3) {
-							urlToServiceNameMap.push_back(std::make_pair(path_reg->tokens_[0], path_reg->tokens_[1]));
-							if (path_reg->tokens_[1] == "static") {
-								for (const auto &st_substatement : path_reg->child_block_->statements_) {
-									if (st_substatement->tokens_[0] == "root") {
-										urlToLinuxMap.insert(std::make_pair(path_reg->tokens_[0], st_substatement->tokens_[1]));
-									} else {
-										BOOST_LOG_SEV(slg::get(), error) << "Unexpected directive " << path_reg->tokens_[0];
-									}
-								}
-							}
+						if (path_reg->tokens_.size() < 2) {
+							BOOST_LOG_SEV(slg::get(), error) << "Missing Filesystem mapping: " << path_reg->tokens_[0];
+							continue;
 						}
 
-						else {
-							BOOST_LOG_SEV(slg::get(), error) << "Malformed Path registration: " << path_reg->tokens_[0];
+						else if (path_reg->tokens_.size() > 2) {
+							BOOST_LOG_SEV(slg::get(), error) << "Too many tokens in Static Path mapping: " << path_reg->tokens_[0];
+							continue;
 						}
+
+						urlToServiceName.push_back({path_reg->tokens_[0], "static"});
+						urlToLinux.insert({path_reg->tokens_[0], path_reg->tokens_[1]});
+						BOOST_LOG_SEV(slg::get(), info) << "Registered Static Path Mapping: " << path_reg->tokens_[0] << " -> " << path_reg->tokens_[1];
+					}
+				}
+				if (substatement->tokens_.size() > 0 && substatement->tokens_[0] == "echo") {
+					for (const auto &path_reg : substatement->child_block_->statements_) {
+						if (path_reg->tokens_.size() > 1) {
+							BOOST_LOG_SEV(slg::get(), error) << "Too many tokens in Echo path registration: " << path_reg->tokens_[0];
+							continue;
+						}
+						urlToServiceName.push_back({path_reg->tokens_[0], "echo"});
+						BOOST_LOG_SEV(slg::get(), info) << "Registered Echo Path: " << path_reg->tokens_[0];
 					}
 				}
 			}
 		}
 	}
-
-	urlToServiceName = urlToServiceNameMap;
-	urlToLinux = urlToLinuxMap;
 }

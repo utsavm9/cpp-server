@@ -1,9 +1,8 @@
 server {
 	listen 81;
 
-	register_paths {
-		/file /static static{
-			
-		}
-	}
+	static {
+        /static /static_data /static_data_2;
+    } 
+
 }

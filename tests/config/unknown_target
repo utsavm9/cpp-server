@@ -1,9 +1,17 @@
 server {
-	listen 81;
+	listen 81;	
 
-	register_paths {
-		/static static {
-			wrong /file;
-		}
+    static{
+        /static /static_data;
+        /file /static_data_1;
+    } 
+
+    echo {
+        /print;
+        /echo;
+    }
+
+	unknown {
+		
 	}
 }

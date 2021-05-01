@@ -1,0 +1,8 @@
+server {
+	listen 81;
+
+	echo {
+        /echo /echo1;
+    } 
+
+}
