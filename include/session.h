@@ -18,6 +18,7 @@ class session {
 	int get_max_length();
 
 	std::string construct_response(size_t bytes_transferred);
+	void change_data(std::string new_data);
 
    private:
 	void handle_read(const boost::system::error_code &, size_t);

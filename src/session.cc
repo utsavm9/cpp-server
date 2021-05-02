@@ -82,7 +82,7 @@ std::string session::construct_response(size_t bytes_transferred) {
 	BOOST_LOG_SEV(slg::get(), error) << "received " << req.method() << " request, user agent '" << req[http::field::user_agent] << "'";
 
 	// Try letting each service handler serve this request
-	for (Service *sv : service_handlers) {
+	for (Service* sv : service_handlers) {
 		if (sv->can_handle(req)) {
 			return sv->make_response(req);
 		}
@@ -92,4 +92,8 @@ std::string session::construct_response(size_t bytes_transferred) {
 	BOOST_LOG_SEV(slg::get(), info) << "no service handler exists for " << req.method() << " request from user agent '" << req[http::field::user_agent] << "'";
 
 	return Service::bad_request();
+}
+
+void session::change_data(std::string new_data) {
+	strncpy(data_, new_data.c_str(), max_length);
 }
