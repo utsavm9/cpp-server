@@ -11,7 +11,7 @@ class MockService : public Service {
 		return "200 OK";
 	}
 
-	bool can_handle(http::request<http::string_body> req) {
+	bool can_handle(__attribute__((unused)) http::request<http::string_body> req) {
 		return true;
 	}
 };

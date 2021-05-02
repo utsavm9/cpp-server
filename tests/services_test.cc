@@ -1,9 +1,12 @@
+#include <boost/filesystem.hpp>
 #include <unordered_map>
 
 #include "echoService.h"
 #include "fileService.h"
 #include "gtest/gtest.h"
 #include "service.h"
+
+namespace fs = boost::filesystem;
 
 TEST(ServiceTest, UnitTests) {
 	Service sv;
@@ -58,6 +61,8 @@ TEST(FileServiceTest, UnitTests) {
 	// as the ones being handled or not
 	req.target("");
 	EXPECT_FALSE(fsv.can_handle(req));
+	req.target("static/");
+	EXPECT_FALSE(fsv.can_handle(req));
 	req.target("/other");
 	EXPECT_FALSE(fsv.can_handle(req));
 	req.target("/..");
@@ -99,4 +104,30 @@ TEST(FileServiceTest, UnitTests) {
 	for (auto &p : checks) {
 		EXPECT_EQ(fsv.get_mime(p.first), p.second);
 	}
+}
+
+TEST(FileServiceTest, ReadFile) {
+	// Create a file and ensure it exists
+	std::ofstream testfile("test.txt");
+	ASSERT_TRUE(testfile) << "could not create a test file, aborting test";
+	testfile << "sample string" << std::endl;
+	testfile.close();
+	ASSERT_TRUE(fs::exists("test.txt")) << "test file does not exist even though it was just created";
+
+	// File service to serve files from current directory
+	FileService fsv("/static", ".");
+
+	// Construct request
+	http::request<http::string_body> req;
+	req.method(http::verb::get);
+	req.version(11);
+	req.target("/static/test.txt");
+
+	// Check if file service can get the file
+	EXPECT_TRUE(fsv.can_handle(req)) << "file service cannot handle legitimate request";
+	std::string res = fsv.make_response(req);
+	EXPECT_NE(res.find("sample string"), std::string::npos) << "requested file was not served, response was: " << res;
+
+	// Clean up
+	ASSERT_TRUE(fs::remove("test.txt")) << "test file got deleted already unexpectedly";
 }
