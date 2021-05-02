@@ -265,24 +265,24 @@ bool NginxConfigParser::Parse(const char *file_name, NginxConfig *config) {
 }
 
 int NginxConfigParser::parse_args(int argc, const char *argv[], NginxConfig *config) {
-	BOOST_LOG_SEV(slg::get(), info) << "starting to parse program arguments";
+	INFO << "starting to parse program arguments";
 
 	if (argc != 2) {
-		BOOST_LOG_SEV(slg::get(), fatal) << "missing config file, usage: webserver <config_file_path>";
+		FATAL << "missing config file, usage: webserver <config_file_path>";
 		exit(1);
 	}
 
 	if (config == nullptr) {
-		BOOST_LOG_SEV(slg::get(), fatal) << "need a config to store the parsed arguments, given nullptr";
+		FATAL << "need a config to store the parsed arguments, given nullptr";
 		exit(2);
 	}
 
 	// Parse the config
 	NginxConfigParser config_parser;
 	if (!config_parser.Parse(argv[1], config)) {
-		BOOST_LOG_SEV(slg::get(), fatal) << "failed to parse config";
+		FATAL << "failed to parse config";
 	}
-	BOOST_LOG_SEV(slg::get(), info) << "parsed the raw config";
+	INFO << "parsed the raw config";
 
 	// Extract relevent information from raw config
 	config->extract_port();

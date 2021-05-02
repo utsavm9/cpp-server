@@ -11,7 +11,7 @@ TEST(LogTests, LogsProperly) {
 	init_logger();
 	std::string log_msg = "Start of first log";
 	const int log_msg_size = log_msg.size();
-	BOOST_LOG_SEV(slg::get(), info) << log_msg;
+	INFO << log_msg;
 	time_t t = time(NULL);
 	tm* timePtr = localtime(&t);
 	std::string month;

@@ -30,7 +30,7 @@ bool EchoService::can_handle(http::request<http::string_body> req) {
 	if (prefix_len <= (target.size()) && target.substr(0, prefix_len) == url_prefix) {
 		return true;
 	} else {
-		BOOST_LOG_SEV(slg::get(), info) << "denying to serve request";
+		INFO << "denying to serve request";
 		return false;
 	}
 }

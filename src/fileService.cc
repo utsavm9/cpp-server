@@ -26,7 +26,7 @@ std::string FileService::make_response(http::request<http::string_body> req) {
 
 	// Check if file exists
 	if (!fs::exists(linux_path)) {
-		BOOST_LOG_SEV(slg::get(), error) << "could not find path " << linux_path;
+		ERROR << "could not find path " << linux_path;
 		return not_found_error();
 	}
 
@@ -58,17 +58,17 @@ bool FileService::can_handle(http::request<http::string_body> req) {
 
 	// Check if target is valid
 	if (target.empty()) {
-		BOOST_LOG_SEV(slg::get(), info) << "did not find target in request, cannot serve a static file";
+		INFO << "did not find target in request, cannot serve a static file";
 		return false;
 	}
 
 	if (target[0] != '/') {
-		BOOST_LOG_SEV(slg::get(), info) << "target not starting with '/', cannot serve a static file";
+		INFO << "target not starting with '/', cannot serve a static file";
 		return false;
 	}
 
 	if (target.find("..") != std::string::npos) {
-		BOOST_LOG_SEV(slg::get(), info) << "target contains relative paths, refusing to use relative paths to serve files";
+		INFO << "target contains relative paths, refusing to use relative paths to serve files";
 		return false;
 	}
 

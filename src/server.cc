@@ -19,7 +19,7 @@ server::server(boost::asio::io_context& io_context, NginxConfig c)
     : io_context_(io_context),
       config_(c),
       acceptor_(io_context, tcp::endpoint(tcp::v4(), c.port)) {
-	BOOST_LOG_SEV(slg::get(), info) << "server listening on port " << config_.port;
+	INFO << "server listening on port " << config_.port;
 
 	// Setup service handlers
 	for (auto p : config_.urlToServiceName) {
@@ -29,23 +29,23 @@ server::server(boost::asio::io_context& io_context, NginxConfig c)
 		// Echo service
 		if (service_name == "echo") {
 			service_handlers.push_back(new EchoService(url_prefix));
-			BOOST_LOG_SEV(slg::get(), info) << "registered echo service for url prefix '" << url_prefix << "'";
+			INFO << "registered echo service for url prefix '" << url_prefix << "'";
 
 			// Static service
 		} else if (service_name == "static") {
 			std::string linux_path = config_.urlToLinux[url_prefix];
 			if (linux_path == "") {
-				BOOST_LOG_SEV(slg::get(), info) << "url prefix '" << url_prefix << "' has no supporting linux path";
+				INFO << "url prefix '" << url_prefix << "' has no supporting linux path";
 				continue;
 			}
 			service_handlers.push_back(new FileService(url_prefix, linux_path));
-			BOOST_LOG_SEV(slg::get(), info) << "registered static service for url prefix '" << url_prefix << "'";
+			INFO << "registered static service for url prefix '" << url_prefix << "'";
 
 		} else {
-			BOOST_LOG_SEV(slg::get(), error) << "unexpected service name '" << service_name << "' for url prefix '" << url_prefix << "' parsed from configs";
+			ERROR << "unexpected service name '" << service_name << "' for url prefix '" << url_prefix << "' parsed from configs";
 		}
 	}
-	BOOST_LOG_SEV(slg::get(), info) << "registered " << service_handlers.size() << " services";
+	INFO << "registered " << service_handlers.size() << " services";
 
 	start_accept();
 }
@@ -76,12 +76,12 @@ void server::register_server_sigint() {
 }
 
 void server::server_sigint(__attribute__((unused)) int s) {
-	BOOST_LOG_SEV(slg::get(), warning) << "received SIGINT, ending execution";
+	INFO << "received SIGINT, ending execution";
 	exit(130);
 }
 
 void server::serve_forever(boost::asio::io_context* io_context, NginxConfig& config) {
-	BOOST_LOG_SEV(slg::get(), info) << "setting up server to serve forever";
+	INFO << "setting up server to serve forever";
 	server::register_server_sigint();
 
 	try {
@@ -89,6 +89,6 @@ void server::serve_forever(boost::asio::io_context* io_context, NginxConfig& con
 		server s(*io_context, config);
 		io_context->run();
 	} catch (std::exception& e) {
-		BOOST_LOG_SEV(slg::get(), fatal) << "exception: " << e.what();
+		FATAL << "exception: " << e.what();
 	}
 }

@@ -29,3 +29,9 @@ using namespace logging::trivial;
 BOOST_LOG_INLINE_GLOBAL_LOGGER_DEFAULT(slg, src::severity_logger_mt<boost::log::trivial::severity_level>)
 
 void init_logger();
+
+// Macros for concise logging
+#define FATAL BOOST_LOG_SEV(slg::get(), fatal)
+#define ERROR BOOST_LOG_SEV(slg::get(), error)
+#define WARNING BOOST_LOG_SEV(slg::get(), warning)
+#define INFO BOOST_LOG_SEV(slg::get(), info)
