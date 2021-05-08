@@ -47,4 +47,16 @@ class NginxConfigParser {
 	};
 
 	TokenType ParseToken(std::istream* input, std::string* value);
+
+	// Allowed escape characters
+	static const std::string escape_chars;
+
+	// Handles consuming characters from the input stream and adding them to value string,
+	// for escape characters inside a string in the config.
+	// Requires the quote type (' or ") enclosing the string.
+	// Returns stringly-typed error which is empty on success, and contains error message on failure.
+	std::string consumeEscapeChar(std::istream* input, std::string* value, char quote);
+
+	// Removed passed type of quotes from around a string if present
+	void removeQuotes(std::string* value, char quote);
 };

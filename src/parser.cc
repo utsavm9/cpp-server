@@ -20,6 +20,8 @@
 
 #include "logger.h"
 
+const std::string NginxConfigParser::escape_chars = "abfnrtv'\"?\\";
+
 NginxConfigParser::NginxConfigParser() {}
 
 const char *NginxConfigParser::TokenTypeAsString(TokenType type) {
@@ -51,7 +53,6 @@ NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream *input,
 	if (input == nullptr || value == nullptr) {
 		return TOKEN_TYPE_ERROR;
 	}
-	std::string escape_chars = "abfnrtv'\"?\\";
 
 	while (input->good()) {
 		const char c = input->get();
@@ -95,11 +96,11 @@ NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream *input,
 		case TOKEN_STATE_SINGLE_QUOTE:
 			*value += c;
 			if (c == '\\') {
-				char peeked_char = input->peek();
-				if (escape_chars.find(peeked_char) == std::string::npos) {
+				std::string err = consumeEscapeChar(input, value, '\'');
+				if (err != "") {
+					ERROR << "unable to parse escape character in config, err: " << err;
 					return TOKEN_TYPE_ERROR;
 				}
-				input->get();
 				continue;
 			}
 			if (c == '\'') {
@@ -108,7 +109,7 @@ NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream *input,
 				if (!(std::isspace(peeked_char) || peeked_char == ';')) {
 					return TOKEN_TYPE_ERROR;
 				}
-
+				removeQuotes(value, '\'');
 				return TOKEN_TYPE_NORMAL;
 			}
 			continue;
@@ -116,11 +117,11 @@ NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream *input,
 		case TOKEN_STATE_DOUBLE_QUOTE:
 			*value += c;
 			if (c == '\\') {
-				char peeked_char = input->peek();
-				if (escape_chars.find(peeked_char) == std::string::npos) {
+				std::string err = consumeEscapeChar(input, value, '"');
+				if (err != "") {
+					ERROR << "unable to parse escape character in config, err: " << err;
 					return TOKEN_TYPE_ERROR;
 				}
-				input->get();
 				continue;
 			}
 			if (c == '"') {
@@ -129,6 +130,7 @@ NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream *input,
 				if (!(std::isspace(peeked_char) || peeked_char == ';')) {
 					return TOKEN_TYPE_ERROR;
 				}
+				removeQuotes(value, '"');
 				return TOKEN_TYPE_NORMAL;
 			}
 			continue;
@@ -156,6 +158,41 @@ NginxConfigParser::TokenType NginxConfigParser::ParseToken(std::istream *input,
 	}
 
 	return TOKEN_TYPE_EOF;
+}
+
+std::string NginxConfigParser::consumeEscapeChar(std::istream *input, std::string *value, char quote) {
+	if (!(quote == '\'' || quote == '"')) {
+		return "string cannot be quoted with given quote in the config";
+	}
+
+	// first-level escape
+	char peeked_char = input->peek();
+	if (NginxConfigParser::escape_chars.find(peeked_char) == std::string::npos) {
+		return "non-escape char following \\ in config";
+	}
+	// consume the \ char and remove it from the token
+	input->get();
+	value->at(value->size() - 1) = peeked_char;
+
+	// check double-escaping for quotes only
+	// eg: \\' to include a quote in a string surrounded by ''
+	if (peeked_char == '\\') {
+		if (input->peek() == quote) {
+			// consume the extra \ too and place the ' in the token
+			input->get();
+			value->at(value->size() - 1) = quote;
+		}
+	}
+	return "";
+}
+
+void NginxConfigParser::removeQuotes(std::string *value, char quote) {
+	if (value->size() > 2 &&
+	    value->at(0) == quote && value->at(value->size() - 1) == quote) {
+		// Remove the first and the last quote
+		value->erase(value->size() - 1, 1);
+		value->erase(0, 1);
+	}
 }
 
 bool NginxConfigParser::Parse(std::istream *config_file, NginxConfig *config) {

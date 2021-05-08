@@ -1,0 +1,3 @@
+server {
+	invalidEscape '\p';
+}
