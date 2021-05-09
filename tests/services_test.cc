@@ -4,11 +4,12 @@
 #include "echoService.h"
 #include "fileService.h"
 #include "gtest/gtest.h"
+#include "parser.h"
 #include "service.h"
 
 namespace fs = boost::filesystem;
 
-TEST(ServiceTest, UnitTests) {
+/*TEST(ServiceTest, UnitTests) {
 	Service sv;
 	http::request<http::string_body> req;
 	http::response<http::string_body> res;
@@ -26,7 +27,7 @@ TEST(ServiceTest, UnitTests) {
 
 	s = sv.not_found_error();
 	EXPECT_NE(s.find("404 Not Found"), std::string::npos);
-}
+}*/
 
 TEST(EchoServiceTest, UnitTests) {
 	std::string s;
@@ -45,7 +46,7 @@ TEST(EchoServiceTest, UnitTests) {
 	EXPECT_TRUE(esv.can_handle(req));
 
 	// Check OK response
-	s = esv.make_response(req);
+	s = esv.to_string(esv.handle_request(req));
 	EXPECT_NE(s.find("200 OK"), std::string::npos);
 	EXPECT_NE(s.find("GET", 5), std::string::npos);
 }
@@ -71,7 +72,7 @@ TEST(FileServiceTest, UnitTests) {
 	EXPECT_TRUE(fsv.can_handle(req));
 
 	// Check missing file
-	s = fsv.make_response(req);
+	s = fsv.to_string(fsv.handle_request(req));
 	EXPECT_NE(s.find("404"), std::string::npos);
 
 	// Test MIME
@@ -125,9 +126,31 @@ TEST(FileServiceTest, ReadFile) {
 
 	// Check if file service can get the file
 	EXPECT_TRUE(fsv.can_handle(req)) << "file service cannot handle legitimate request";
-	std::string res = fsv.make_response(req);
+	std::string res = fsv.to_string(fsv.handle_request(req));
 	EXPECT_NE(res.find("sample string"), std::string::npos) << "requested file was not served, response was: " << res;
 
 	// Clean up
 	ASSERT_TRUE(fs::remove("test.txt")) << "test file got deleted already unexpectedly";
+}
+
+TEST(FileServiceTest, NewConstructor) {
+	NginxConfig config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("root \"./files\";  # supports relative path");
+	p.Parse(&configStream, &config);
+	FileService fsv("/static", config);
+	EXPECT_EQ("./files", fsv.get_linux_dir());
+}
+
+TEST(EchoServiceTest, NewConstructor) {
+	NginxConfig config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("root \"./files\";  # supports relative path");
+	p.Parse(&configStream, &config);
+	EchoService esv("/echo", config);
+	EXPECT_EQ("/echo", esv.get_url_prefix());
 }

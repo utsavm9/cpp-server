@@ -10,8 +10,55 @@
 namespace http = boost::beast::http;
 namespace fs = boost::filesystem;
 
-FileService::FileService(std::string prefix, std::string l)
-    : url_prefix(prefix), linux_dir(l) {
+FileService::FileService(std::string p, std::string l)
+    : url_prefix(p), linux_dir(l) {
+}
+
+FileService::FileService(const std::string& prefix, const NginxConfig& config)
+    : url_prefix(prefix) {
+	try {
+		linux_dir = config.statements_[0]->tokens_[1];
+	} catch (std::exception& e) {
+		FATAL << "exception: " << e.what();
+	}
+}
+
+http::response<http::string_body> FileService::handle_request(const http::request<http::string_body>& request) {
+	std::string target(request.target());
+	// Identify if index.html is needed
+	if (target.size() > 0 && target[target.size() - 1] == '/') {
+		target.append("index.html");
+	}
+
+	fs::path filepath(target.substr(url_prefix.size()));
+	fs::path linux_path(linux_dir / filepath);
+
+	// Check if file exists
+	if (!fs::exists(linux_path)) {
+		ERROR << "could not find path " << linux_path;
+		return not_found_error_res();
+	}
+
+	http::response<http::string_body> res;
+	std::ifstream file(linux_path.c_str());
+	std::string filebody;
+
+	// Allocate a large enough string
+	file.seekg(0, std::ios::end);
+	filebody.reserve(file.tellg());
+	file.seekg(0, std::ios::beg);
+
+	// Load the file in a string
+	// Currently, extra large files not supported
+	filebody.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+	res.version(11);  // HTTP/1.1
+	res.result(http::status::ok);
+	res.set(http::field::content_type, get_mime(target));
+	res.set(http::field::server, "koko.cs130.org");
+	res.body() = filebody;
+	res.prepare_payload();
+	return res;
 }
 
 std::string FileService::make_response(http::request<http::string_body> req) {
@@ -112,4 +159,8 @@ std::string FileService::get_mime(std::string target) {
 	if (extension == ".svgz") return "image/svg+xml";
 	if (extension == ".zip") return "application/zip";
 	return "text/plain";
+}
+
+fs::path FileService::get_linux_dir() {
+	return this->linux_dir;
 }

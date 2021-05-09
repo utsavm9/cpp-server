@@ -26,11 +26,13 @@ TEST(ServerTest, ServeForever) {
 	p.Parse(&configStream, &config);
 	ASSERT_EQ(config.get_port(), 8080);
 	config.urlToServiceName = std::vector<std::pair<std::string, std::string>>{
-	    {"/static", "static"}, {"/images", "static"}, {"/echo", "echo"}, {"/games", "game"},
+	    {"/static", "static"},
+	    {"/images", "static"},
+	    {"/echo", "echo"},
+	    {"/games", "game"},
 	};
 	config.urlToLinux = std::unordered_map<std::string, std::string>{
-		{"/static", "~/Desktop/"}, {"/unknown", "/Images"}
-	};
+	    {"/static", "~/Desktop/"}, {"/unknown", "/Images"}};
 	std::thread server_thread(server_runner, &io_context, config, &done);
 
 	// Wait for server to start-up
@@ -55,10 +57,10 @@ TEST(ServerTest, ServeForever) {
 
 TEST(ServerTest, SignalHandling) {
 	// Test that the signal handler exists with the right return code
-    ASSERT_EXIT(
-        {
-            server::server_sigint(0);
-            exit(0);
-        },
-        ::testing::ExitedWithCode(130), "");
+	ASSERT_EXIT(
+	    {
+		    server::server_sigint(0);
+		    exit(0);
+	    },
+	    ::testing::ExitedWithCode(130), "");
 }

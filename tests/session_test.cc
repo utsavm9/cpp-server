@@ -14,6 +14,11 @@ class MockService : public Service {
 	bool can_handle(__attribute__((unused)) http::request<http::string_body> req) {
 		return true;
 	}
+
+	http::response<http::string_body> handle_request(__attribute__((unused)) const http::request<http::string_body> &request) {
+		http::response<http::string_body> res;
+		return res;
+	}
 };
 
 TEST(Session, ConstructResponse) {

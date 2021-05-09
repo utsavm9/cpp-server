@@ -50,6 +50,17 @@ std::string Service::not_found_error() {
 	return Service::to_string(res);
 }
 
+http::response<http::string_body> Service::not_found_error_res() {
+	http::response<http::string_body> res;
+	res.version(11);
+	res.result(http::status::not_found);
+	res.set(http::field::server, "koko.cs130.org");
+	res.set(http::field::content_type, "text/plain");
+	res.body() = "The requested resource was not found.";
+	res.prepare_payload();
+	return res;
+}
+
 std::string Service::internal_server_error() {
 	http::response<http::string_body> res;
 	res.version(11);
