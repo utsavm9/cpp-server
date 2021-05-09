@@ -3,7 +3,7 @@
 foo "bar";
 
 server {
-  listen   80;
+  port   80;
   server_name foo.com; #lines with comments
   root /home/ubuntu/sites/foo/;
 }

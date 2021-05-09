@@ -8,7 +8,7 @@
 
 class NginxConfigTest : public ::testing::Test {
    protected:
-	int unchanged = -100;
+	int default_port = 80;
 	NginxConfigParser parser_;
 
 	void test_extract_port(const char *filename, int expected) {
@@ -18,21 +18,20 @@ class NginxConfigTest : public ::testing::Test {
 		ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
 		ASSERT_TRUE(parser_.Parse(filename, &config)) << "Parser error on file: " << filename;
 
-		config.port = unchanged;
-		config.extract_port();
-		EXPECT_EQ(config.port, expected);
+		EXPECT_EQ(config.get_port(), expected) << "extracted wrong port number for: " << filepath;
 	}
 };
 
 TEST_F(NginxConfigTest, ExtractPort) {
 	std::pair<const char *, int> file_ports[]{
-	    {"config/exemplar", 100},
-	    {"config/missing_listen", unchanged},
-	    {"config/missing_port", unchanged},
-	    {"config/missing_server", unchanged},
-	    {"config/non_numeric_port", unchanged},
-	    {"config/too_long_port", unchanged},
-	    {"config/wrong_listen_format", unchanged},
+	    {"config/port_server_block", 100},
+	    {"config/port_top_level", 100},
+	    {"config/missing_listen", default_port},
+	    {"config/missing_port", default_port},
+	    {"config/missing_server", default_port},
+	    {"config/non_numeric_port", default_port},
+	    {"config/too_long_port", default_port},
+	    {"config/wrong_listen_format", default_port},
 	};
 
 	for (auto &p : file_ports) {
@@ -62,19 +61,24 @@ TEST_F(NginxConfigTest, ParseArgs) {
 		NginxConfig config;
 		const char *argv_good_config[] = {
 		    (char *)("program-name"),
-		    (char *)("config/exemplar")};
+		    (char *)("config/port_top_level")};
+
+		boost::filesystem::path filepath(argv_good_config[1]);
+		ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
 		NginxConfigParser::parse_args(2, argv_good_config, &config);
-		EXPECT_EQ(config.port, 100);
+		EXPECT_EQ(config.get_port(), 100);
 	}
 
 	{
 		NginxConfig config;
-		config.port = 99;
 		const char *argv_bad_config[] = {
 		    (char *)("program-name"),
 		    (char *)("parser/missing_opening_braces_config")};
+
+		boost::filesystem::path filepath(argv_bad_config[1]);
+		ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
 		NginxConfigParser::parse_args(2, argv_bad_config, &config);
-		EXPECT_EQ(config.port, 99);
+		EXPECT_EQ(config.get_port(), 80);
 	}
 }
 

@@ -7,5 +7,5 @@ server {
     }
 
 	# Port to serve on
-	listen 100;
+	port 100;
 }

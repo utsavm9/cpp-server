@@ -2,11 +2,12 @@
 
 #include <chrono>
 #include <iostream>
+#include <sstream>
 #include <string>
 #include <thread>
 
-#include "gtest/gtest.h"
 #include "config.h"
+#include "gtest/gtest.h"
 
 void server_runner(boost::asio::io_context* io_context, NginxConfig config, bool* done) {
 	server::serve_forever(io_context, config);
@@ -18,7 +19,12 @@ TEST(ServerTest, ServeForever) {
 	boost::asio::io_context io_context;
 	bool done = false;
 	NginxConfig config;
-	config.port = 8080;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("server { port 8080; }");
+	p.Parse(&configStream, &config);
+	ASSERT_EQ(config.get_port(), 8080);
 	config.urlToServiceName = std::vector<std::pair<std::string, std::string>>{
 	    {"/static", "static"}, {"/images", "static"}, {"/echo", "echo"}, {"/games", "game"},
 	};

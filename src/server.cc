@@ -18,8 +18,8 @@ using boost::asio::ip::tcp;
 server::server(boost::asio::io_context& io_context, NginxConfig c)
     : io_context_(io_context),
       config_(c),
-      acceptor_(io_context, tcp::endpoint(tcp::v4(), c.port)) {
-	INFO << "server listening on port " << config_.port;
+      acceptor_(io_context, tcp::endpoint(tcp::v4(), c.get_port())) {
+	INFO << "server listening on port " << c.get_port();
 
 	// Setup service handlers
 	for (auto p : config_.urlToServiceName) {

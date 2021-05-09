@@ -4,7 +4,7 @@ foo "bar";
 
 server {
 # comment within block
-  listen   80;
+  port   80;
   server_name foo.com;
   root /home/ubuntu/sites/foo/;
 }

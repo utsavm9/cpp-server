@@ -32,7 +32,7 @@ fi
 start() {
 	local CONFIG="
 		server {
-			listen $PORT;
+			port $PORT;
 
 		static {
 			/static ../data/static_data;

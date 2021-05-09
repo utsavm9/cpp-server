@@ -321,10 +321,7 @@ int NginxConfigParser::parse_args(int argc, const char *argv[], NginxConfig *con
 	}
 	INFO << "parsed the raw config";
 
-	// Extract relevent information from raw config
-	config->extract_port();
 	config->extract_targets();
-	config->free_memory();
 
 	return 0;
 }

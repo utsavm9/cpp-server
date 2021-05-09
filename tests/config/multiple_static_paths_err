@@ -1,5 +1,5 @@
 server {
-	listen 81;
+	port 81;
 
 	static {
         /static /static_data /static_data_2;

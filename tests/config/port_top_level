@@ -1,0 +1,9 @@
+location / {
+	root /data/www;
+}
+
+location /images/ {
+}
+
+# Port to serve on
+port 100;

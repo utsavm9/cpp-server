@@ -1,5 +1,5 @@
 server {
 	port {
-		listen 100;
+		port 100;
 	}
 }
