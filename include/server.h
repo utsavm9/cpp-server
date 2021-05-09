@@ -25,7 +25,7 @@ class server {
 	NginxConfigParser config_parser;
 	NginxConfig config;
 
-	std::vector<Service*> service_handlers;
+	std::vector<std::pair<std::string, Service*>> urlToServiceHandler;
 
 	void start_accept();
 

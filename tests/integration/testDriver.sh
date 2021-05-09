@@ -31,18 +31,17 @@ fi
 # stop() should clear the files left by start()
 start() {
 	local CONFIG="
-		server {
-			port $PORT;
+		port $PORT;
 
-		static {
-			/static ../data/static_data;
+		location /static StaticHandler{
+			root ../data/static_data;
 		}
 
-		echo {
-			/echo;
-			/print;
+		location /echo EchoHandler {
 		}
-	}
+
+		location /print EchoHandler {
+		}
 	"
 
 	# Check if port is free

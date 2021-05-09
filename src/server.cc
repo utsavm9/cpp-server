@@ -21,37 +21,41 @@ server::server(boost::asio::io_context& io_context, NginxConfig c)
       acceptor_(io_context, tcp::endpoint(tcp::v4(), c.get_port())) {
 	INFO << "server listening on port " << c.get_port();
 
-	// Setup service handlers
-	for (auto p : config_.urlToServiceName) {
-		std::string url_prefix = p.first;
-		std::string service_name = p.second;
+	// Making handlers based on config
+	for (const auto& statement : config_.statements_) {
+		auto tokens = statement->tokens_;
 
-		// Echo service
-		if (service_name == "echo") {
-			service_handlers.push_back(new EchoService(url_prefix));
-			INFO << "registered echo service for url prefix '" << url_prefix << "'";
+		if (tokens.size() >= 3 && tokens[0] == "location") {
+			std::string service_name = tokens[2];
 
-			// Static service
-		} else if (service_name == "static") {
-			std::string linux_path = config_.urlToLinux[url_prefix];
-			if (linux_path == "") {
-				INFO << "url prefix '" << url_prefix << "' has no supporting linux path";
-				continue;
+			std::string url_prefix = tokens[1];
+			Service* current_handler = nullptr;
+
+			if (service_name == "EchoHandler") {
+				current_handler = new EchoService(url_prefix, *(statement->child_block_));
+				urlToServiceHandler.push_back(std::make_pair(url_prefix, current_handler));
+				INFO << "registered echo service for url prefix '" << url_prefix << "'";
+			} else if (service_name == "StaticHandler") {
+				current_handler = new FileService(url_prefix, *(statement->child_block_));
+				urlToServiceHandler.push_back(std::make_pair(url_prefix, current_handler));
+				INFO << "registered static service for url prefix '" << url_prefix << "'";
+			} else if (service_name == "404Handler") {
+				/*
+				current_handler = new NotFoundService(url_prefix, *(statement->child_block_));
+				urlToServiceHandler.push_back(std::make_pair(url_prefix, current_handler));
+				INFO << "registered notfound service for url prefix '" << url_prefix << "'";
+				*/
+			} else {
+				ERROR << "unexpected service name '" << service_name << "' parsed from configs";
 			}
-			service_handlers.push_back(new FileService(url_prefix, linux_path));
-			INFO << "registered static service for url prefix '" << url_prefix << "'";
-
-		} else {
-			ERROR << "unexpected service name '" << service_name << "' for url prefix '" << url_prefix << "' parsed from configs";
 		}
 	}
-	INFO << "registered " << service_handlers.size() << " services";
 
 	start_accept();
 }
 
 void server::start_accept() {
-	session* new_session = new session(io_context_, &config_, service_handlers, 1024);
+	session* new_session = new session(io_context_, &config_, urlToServiceHandler, 1024);
 	acceptor_.async_accept(new_session->socket(),
 	                       boost::bind(&server::handle_accept, this, new_session,
 	                                   boost::asio::placeholders::error));

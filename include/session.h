@@ -10,7 +10,8 @@ using boost::asio::ip::tcp;
 
 class session {
    public:
-	session(boost::asio::io_context &io_context, NginxConfig *c, std::vector<Service *> &s, int max_len);
+	// takes in config and url_to_handler mapping from server, with max_len buffer size
+	session(boost::asio::io_context &io_context, NginxConfig *c, std::vector<std::pair<std::string, Service *>> &utoh, int max_len);
 	~session();
 
 	tcp::socket &socket();
@@ -27,7 +28,7 @@ class session {
 	tcp::socket socket_;
 
 	NginxConfig *config;
-	std::vector<Service *> &service_handlers;
+	std::vector<std::pair<std::string, Service *>> urlToServiceHandler;
 
 	int max_length;
 	char *data_;
