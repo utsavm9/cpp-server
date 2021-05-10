@@ -45,77 +45,6 @@ TEST(EchoHandlerTest, UnitTests) {
 	}
 }
 
-TEST(NotFoundServiceTest, UnitTests) {
-	NginxConfig config;
-	NginxConfigParser p;
-	std::istringstream configStream;
-
-	configStream.str("");
-	p.Parse(&configStream, &config);
-	NotFoundHandler esv("/", config);
-
-	std::string s;
-	http::request<http::string_body> req;
-	req.method(http::verb::get);
-	req.target("/");
-	req.version(11);
-
-	// Check OK response
-	s = esv.to_string(esv.handle_request(req));
-	EXPECT_NE(s.find("404 Not Found"), std::string::npos);
-}
-
-TEST(FileServiceTest, UnitTests) {
-	NginxConfig config;
-	NginxConfigParser p;
-	std::istringstream configStream;
-
-	configStream.str("root \".\";");
-	p.Parse(&configStream, &config);
-	FileHandler fsv("/static", config);
-
-	std::string s;
-	http::request<http::string_body> req;
-	req.method(http::verb::get);
-	req.target("/static/file_that_doesn't_exist");
-	req.version(11);
-
-	// Check missing file
-	s = fsv.to_string(fsv.handle_request(req));
-	EXPECT_NE(s.find("404"), std::string::npos);
-
-	// Test MIME
-	std::unordered_map<std::string, std::string> checks{
-	    {"index.html", "text/html"},
-	    {"test.htm", "text/html"},
-	    {"index.php", "text/html"},
-	    {"index.css", "text/css"},
-	    {"password.txt", "text/plain"},
-	    {"malware.js", "application/javascript"},
-	    {"geo.json", "application/json"},
-	    {"data.xml", "application/xml"},
-	    {"games.swf", "application/x-shockwave-flash"},
-	    {"flying.flv", "video/x-flv"},
-	    {"lossless.png", "image/png"},
-	    {"me.jpg", "image/jpeg"},
-	    {"me.jpeg", "image/jpeg"},
-	    {"jff.gif", "image/gif"},
-	    {"paint.bmp", "image/bmp"},
-	    {"favi.ico", "image/vnd.microsoft.icon"},
-	    {"why.tif", "image/tiff"},
-	    {"what.tiff", "image/tiff"},
-	    {"sun.svg", "image/svg+xml"},
-	    {"earth.svgz", "image/svg+xml"},
-	    {"hw.zip", "application/zip"},
-	    {"extensionless", "text/plain"},
-	    {"/", "text/plain"},
-	};
-
-	for (auto& p : checks) {
-		EXPECT_EQ(fsv.get_mime(p.first), p.second);
-	}
-}
-
 class FileHandlerTest : public ::testing::Test {
    public:
 	// Creates the file at current directory.
@@ -173,6 +102,57 @@ class FileHandlerTest : public ::testing::Test {
 };
 
 TEST_F(FileHandlerTest, UnitTests) {
+	NginxConfig config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("root \".\";");
+	p.Parse(&configStream, &config);
+	FileHandler fsv("/static", config);
+
+	std::string s;
+	http::request<http::string_body> req;
+	req.method(http::verb::get);
+	req.target("/static/file_that_doesn't_exist");
+	req.version(11);
+
+	// Check missing file
+	s = fsv.to_string(fsv.handle_request(req));
+	EXPECT_NE(s.find("404"), std::string::npos);
+
+	// Test MIME
+	std::unordered_map<std::string, std::string> checks{
+	    {"index.html", "text/html"},
+	    {"test.htm", "text/html"},
+	    {"index.php", "text/html"},
+	    {"index.css", "text/css"},
+	    {"password.txt", "text/plain"},
+	    {"malware.js", "application/javascript"},
+	    {"geo.json", "application/json"},
+	    {"data.xml", "application/xml"},
+	    {"games.swf", "application/x-shockwave-flash"},
+	    {"flying.flv", "video/x-flv"},
+	    {"lossless.png", "image/png"},
+	    {"me.jpg", "image/jpeg"},
+	    {"me.jpeg", "image/jpeg"},
+	    {"jff.gif", "image/gif"},
+	    {"paint.bmp", "image/bmp"},
+	    {"favi.ico", "image/vnd.microsoft.icon"},
+	    {"why.tif", "image/tiff"},
+	    {"what.tiff", "image/tiff"},
+	    {"sun.svg", "image/svg+xml"},
+	    {"earth.svgz", "image/svg+xml"},
+	    {"hw.zip", "application/zip"},
+	    {"extensionless", "text/plain"},
+	    {"/", "text/plain"},
+	};
+
+	for (auto& p : checks) {
+		EXPECT_EQ(fsv.get_mime(p.first), p.second);
+	}
+}
+
+TEST_F(FileHandlerTest, FileTests) {
 	{
 		// Check constructor
 		NginxConfig config;
@@ -212,4 +192,24 @@ TEST_F(FileHandlerTest, UnitTests) {
 		// Check that invalid settings do not return a 200 OK
 		test_not_ok("/static", "nonexistant-repo", "/static/");
 	}
+}
+
+TEST(NotFoundHandlerTest, UnitTests) {
+	NginxConfig config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("");
+	p.Parse(&configStream, &config);
+	NotFoundHandler esv("/", config);
+
+	std::string s;
+	http::request<http::string_body> req;
+	req.method(http::verb::get);
+	req.target("/");
+	req.version(11);
+
+	// Check OK response
+	s = esv.to_string(esv.handle_request(req));
+	EXPECT_NE(s.find("404 Not Found"), std::string::npos);
 }

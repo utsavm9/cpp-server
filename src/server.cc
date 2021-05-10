@@ -22,30 +22,21 @@ server::server(boost::asio::io_context& io_context, NginxConfig c)
       acceptor_(io_context, tcp::endpoint(tcp::v4(), c.get_port())) {
 	INFO << "server listening on port " << c.get_port();
 
-	// Making handlers based on config
+	// make handlers based on config
 	for (const auto& statement : config_.statements_) {
 		auto tokens = statement->tokens_;
 
-		if (tokens.size() >= 3 && tokens[0] == "location") {
-			std::string handler_name = tokens[2];
+		if (tokens.size() > 0 && tokens[0] == "location") {
+			if (tokens.size() != 3) {
+				ERROR << "found a location block in config with incorrect syntax";
+			}
 
 			std::string url_prefix = tokens[1];
-			RequestHandler* current_handler = nullptr;
-
-			if (handler_name == "EchoHandler") {
-				current_handler = new EchoHandler(url_prefix, *(statement->child_block_));
-				urlToRequestHandler.push_back(std::make_pair(url_prefix, current_handler));
-				INFO << "registered echo handler for url prefix '" << url_prefix << "'";
-			} else if (handler_name == "StaticHandler") {
-				current_handler = new FileHandler(url_prefix, *(statement->child_block_));
-				urlToRequestHandler.push_back(std::make_pair(url_prefix, current_handler));
-				INFO << "registered static handler for url prefix '" << url_prefix << "'";
-			} else if (handler_name == "404Handler") {
-				current_handler = new NotFoundHandler(url_prefix, *(statement->child_block_));
-				urlToRequestHandler.push_back(std::make_pair(url_prefix, current_handler));
-				INFO << "registered notfound handler for url prefix '" << url_prefix << "'";
-			} else {
-				ERROR << "unexpected handler name '" << handler_name << "' parsed from configs";
+			std::string handler_name = tokens[2];
+			NginxConfig* child_block = statement->child_block_.get();
+			RequestHandler* s = create_handler(url_prefix, handler_name, *child_block);
+			if (s != nullptr) {
+				urlToHandler.push_back({url_prefix, s});
 			}
 		}
 	}
@@ -53,8 +44,28 @@ server::server(boost::asio::io_context& io_context, NginxConfig c)
 	start_accept();
 }
 
+RequestHandler* server::create_handler(std::string url_prefix, std::string handler_name, NginxConfig subconfig) {
+	if (handler_name == "EchoHandler") {
+		INFO << "registering echo handler for url prefix: " << url_prefix;
+		return new EchoHandler(url_prefix, subconfig);
+	}
+
+	else if (handler_name == "StaticHandler") {
+		INFO << "registering static handler for url prefix: " << url_prefix;
+		return new FileHandler(url_prefix, subconfig);
+	}
+
+	else if (handler_name == "NotFoundHandler") {
+		INFO << "registering not found handler for url prefix: " << url_prefix;
+		return new NotFoundHandler(url_prefix, subconfig);
+	}
+
+	ERROR << "unexpected handler name parsed from config: " << handler_name;
+	return nullptr;
+}
+
 void server::start_accept() {
-	session* new_session = new session(io_context_, &config_, urlToRequestHandler, 1024);
+	session* new_session = new session(io_context_, &config_, urlToHandler, 1024);
 	acceptor_.async_accept(new_session->socket(),
 	                       boost::bind(&server::handle_accept, this, new_session,
 	                                   boost::asio::placeholders::error));

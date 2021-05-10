@@ -5,12 +5,19 @@
 
 #include "config.h"
 #include "handler.h"
-#include "parser.h"
 #include "session.h"
 
 class server {
    public:
+	// Requires a io_context to run, and a NginxConfig config from which
+	// port number and request handlers can be extracted.
 	server(boost::asio::io_context& io_context, NginxConfig config);
+
+	// Needs modification EVERYTIME a new handler is registered.
+	// Retuns a pointer to a newly constructed handler from the url prefix, handler name
+	// and the config sub-block attached to a location block.
+	// Returns a nullptr if no request handler could be created from the passed parameters.
+	RequestHandler* create_handler(std::string url_prefix, std::string handler_name, NginxConfig subconfig);
 
 	// starts a server and block until an exception occurs
 	static void serve_forever(boost::asio::io_context* io_context, NginxConfig& config);
@@ -22,10 +29,7 @@ class server {
 	static void server_sigint(__attribute__((unused)) int s);
 
    private:
-	NginxConfigParser config_parser;
-	NginxConfig config;
-
-	std::vector<std::pair<std::string, RequestHandler*>> urlToRequestHandler;
+	std::vector<std::pair<std::string, RequestHandler*>> urlToHandler;
 
 	void start_accept();
 

@@ -12,7 +12,7 @@ using error_code = boost::system::error_code;
 namespace http = boost::beast::http;
 
 session::session(boost::asio::io_context& io_context, NginxConfig* c, std::vector<std::pair<std::string, RequestHandler*>>& utoh, int max_len)
-    : socket_(io_context), config(c), urlToServiceHandler(utoh), max_length(max_len) {
+    : socket_(io_context), config(c), urlToHandler(utoh), max_length(max_len) {
 	INFO << "constructed a new session";
 	data_ = new char[max_length];
 }
@@ -87,7 +87,7 @@ std::string session::construct_response(size_t bytes_transferred) {
 	RequestHandler* correct_handler = nullptr;
 
 	//find correct handler (longest matching prefix)
-	for (std::pair<std::string, RequestHandler*> handler_mapping : urlToServiceHandler) {
+	for (std::pair<std::string, RequestHandler*> handler_mapping : urlToHandler) {
 		std::string handler_url_prefix = handler_mapping.first;
 		size_t prefix_len = handler_url_prefix.size();
 

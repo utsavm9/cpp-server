@@ -28,7 +28,7 @@ class session {
 	tcp::socket socket_;
 
 	NginxConfig *config;
-	std::vector<std::pair<std::string, RequestHandler *>> urlToServiceHandler;
+	std::vector<std::pair<std::string, RequestHandler *>> urlToHandler;
 
 	int max_length;
 	char *data_;

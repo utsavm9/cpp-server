@@ -8,6 +8,7 @@
 
 #include "config.h"
 #include "gtest/gtest.h"
+#include "parser.h"
 
 void server_runner(boost::asio::io_context* io_context, NginxConfig config, bool* done) {
 	server::serve_forever(io_context, config);
@@ -24,13 +25,13 @@ TEST(ServerTest, ServeForever) {
 
 	configStream.str(
 	    "port 8080; # The port my server listens on\n"
-	    "location \"/echo\" EchoHandler {}\n"
-	    "location \"/print\" EchoHandler {}\n"
-	    "location \"/static\" StaticHandler {\n"
-	    "root \"../data/static_data\";\n"
+	    "location /echo EchoHandler {}\n"
+	    "location /print EchoHandler {}\n"
+	    "location /static StaticHandler {\n"
+	    "root ../data/static_data;\n"
 	    "}\n"
-	    "location \"/\" 404Handler{}\n"
-	    "location \"/notvalid\" ErrorButServerShouldntCrash{}\n");
+	    "location / NotFoundHandler{} \n"
+	    "location /invalid ErrorButServerShouldntCrash{}\n");
 	p.Parse(&configStream, &config);
 	ASSERT_EQ(config.get_port(), 8080);
 	std::thread server_thread(server_runner, &io_context, config, &done);
