@@ -63,6 +63,12 @@ TEST(Session, ConstructResponse) {
 	pos = normal_response_test.find(http_ok);
 	EXPECT_EQ(pos, 0);
 
+	// test /foo hander doesn't handle /foo2
+	new_session.change_data("GET /foo2 HTTP/1.1\r\n\r\n");
+	normal_response_test = new_session.construct_response(max_len);
+	pos = normal_response_test.find(http_ok);
+	EXPECT_EQ(pos, std::string::npos);
+
 	// test bad request (no request handler)
 	url_to_handlers.clear();
 	new_session.change_data("GET /echo HTTP/1.1\r\n\r\n");

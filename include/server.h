@@ -16,8 +16,11 @@ class server {
 	// Needs modification EVERYTIME a new handler is registered.
 	// Retuns a pointer to a newly constructed handler from the url prefix, handler name
 	// and the config sub-block attached to a location block.
-	// Returns a nullptr if no request handler could be created from the passed parameters.
-	RequestHandler* create_handler(std::string url_prefix, std::string handler_name, NginxConfig subconfig);
+	// Returns a nullptr if no request handler could be created from the passed parameters
+	static RequestHandler* create_handler(std::string url_prefix, std::string handler_name, NginxConfig subconfig);
+
+	// Creates all handlers from config, returns the mappings
+	static std::vector<std::pair<std::string, RequestHandler*>> create_all_handlers(NginxConfig config);
 
 	// starts a server and block until an exception occurs
 	static void serve_forever(boost::asio::io_context* io_context, NginxConfig& config);

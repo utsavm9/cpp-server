@@ -65,3 +65,53 @@ TEST(ServerTest, SignalHandling) {
 	    },
 	    ::testing::ExitedWithCode(130), "");
 }
+
+//handler request behavior is covered in Integration Tests, these are for Handler Creation
+TEST(ServerTest, SingleHandlerCreation) {
+	RequestHandler* handler = nullptr;
+	NginxConfig sub_config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("\n");
+	p.Parse(&configStream, &sub_config);
+	handler = server::create_handler("/echo", "EchoHandler", sub_config);
+	EXPECT_NE(handler, nullptr);
+
+	configStream.str("root ../data\n");
+	p.Parse(&configStream, &sub_config);
+	handler = server::create_handler("/static", "StaticHandler", sub_config);
+	EXPECT_NE(handler, nullptr);
+
+	configStream.str("");
+	p.Parse(&configStream, &sub_config);
+	handler = server::create_handler("/", "NotFoundHandler", sub_config);
+	EXPECT_NE(handler, nullptr);
+
+	configStream.str("");
+	p.Parse(&configStream, &sub_config);
+	handler = server::create_handler("/", "NotARealHandler", sub_config);
+	EXPECT_EQ(handler, nullptr);
+}
+
+TEST(ServerTest, HandlerCreationFromConfig) {
+	// Check constructor
+	NginxConfig config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str(
+	    "port 8080; # The port my server listens on\n"
+	    "location /echo EchoHandler {}\n"
+	    "location /print EchoHandler {}\n"
+	    "location /static StaticHandler {\n"
+	    "root ../data/static_data;\n"
+	    "}\n"
+	    "location / NotFoundHandler{} \n"
+	    "location /invalid ErrorButServerShouldntCrash{}\n"
+	    "location /Only2ParamSoShouldBeIgnored{}\n");
+	p.Parse(&configStream, &config);
+
+	auto mapping = server::create_all_handlers(config);
+	EXPECT_EQ(mapping.size(), 4);
+}

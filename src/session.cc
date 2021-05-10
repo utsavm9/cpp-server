@@ -81,7 +81,10 @@ std::string session::construct_response(size_t bytes_transferred) {
 	http::request<http::string_body> req = parser.get();
 	INFO << "received " << req.method() << " request, user agent '" << req[http::field::user_agent] << "'";
 
-	std::string target(req.target());
+	// add / to make sure the directory name is the same
+	std::string target = std::string(req.target());
+	target = target + "/";
+
 	size_t longest_prefix_match = 0;
 	std::string handler_url = "";
 	RequestHandler* correct_handler = nullptr;
@@ -91,7 +94,10 @@ std::string session::construct_response(size_t bytes_transferred) {
 		std::string handler_url_prefix = handler_mapping.first;
 		size_t prefix_len = handler_url_prefix.size();
 
-		if (target.substr(0, prefix_len) == handler_url_prefix && prefix_len > longest_prefix_match) {
+		bool longest_prefix_string_match = target.substr(0, prefix_len) == handler_url_prefix && prefix_len > longest_prefix_match;
+		bool last_dirname_not_a_substr = (target[prefix_len] == '/') || handler_url_prefix == "/";
+
+		if (longest_prefix_string_match && last_dirname_not_a_substr) {
 			longest_prefix_match = prefix_len;
 			correct_handler = handler_mapping.second;
 			handler_url = handler_url_prefix;

@@ -22,25 +22,7 @@ server::server(boost::asio::io_context& io_context, NginxConfig c)
       config_(c),
       acceptor_(io_context, tcp::endpoint(tcp::v4(), c.get_port())) {
 	INFO << "server listening on port " << c.get_port();
-
-	// make handlers based on config
-	for (const auto& statement : config_.statements_) {
-		auto tokens = statement->tokens_;
-
-		if (tokens.size() > 0 && tokens[0] == "location") {
-			if (tokens.size() != 3) {
-				ERROR << "found a location block in config with incorrect syntax";
-			}
-
-			std::string url_prefix = tokens[1];
-			std::string handler_name = tokens[2];
-			NginxConfig* child_block = statement->child_block_.get();
-			RequestHandler* s = create_handler(url_prefix, handler_name, *child_block);
-			if (s != nullptr) {
-				urlToHandler.push_back({url_prefix, s});
-			}
-		}
-	}
+	urlToHandler = create_all_handlers(config_);
 
 	start_accept();
 }
@@ -68,6 +50,35 @@ RequestHandler* server::create_handler(std::string url_prefix, std::string handl
 
 	ERROR << "unexpected handler name parsed from config: " << handler_name;
 	return nullptr;
+}
+
+std::vector<std::pair<std::string, RequestHandler*>> server::create_all_handlers(NginxConfig config) {
+	std::vector<std::pair<std::string, RequestHandler*>> temp_urlToHandler;
+
+	// make handlers based on config
+	for (const auto& statement : config.statements_) {
+		auto tokens = statement->tokens_;
+
+		if (tokens.size() > 0 && tokens[0] == "location") {
+			if (tokens.size() != 3) {
+				ERROR << "found a location block in config with incorrect syntax";
+				continue;
+			}
+
+			std::string url_prefix = tokens[1];
+			std::string handler_name = tokens[2];
+			if(url_prefix[url_prefix.size()-1] == '/' && url_prefix != "/"){
+				url_prefix = url_prefix.substr(0, url_prefix.size()-1);
+			}
+
+			NginxConfig* child_block = statement->child_block_.get();
+			RequestHandler* s = server::create_handler(url_prefix, handler_name, *child_block);
+			if (s != nullptr) {
+				temp_urlToHandler.push_back({url_prefix, s});
+			}
+		}
+	}
+	return temp_urlToHandler;
 }
 
 void server::start_accept() {

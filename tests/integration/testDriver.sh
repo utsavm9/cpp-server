@@ -37,10 +37,13 @@ start() {
 			root ../data/static_data;
 		}
 
-		location /echo EchoHandler {
+		location \"/echo/\" EchoHandler {
 		}
 
 		location /print EchoHandler {
+		}
+
+		location / NotFoundHandler {
 		}
 	"
 
@@ -134,8 +137,9 @@ test_body() {
 # Integration tests
 start
 
-test_header "/" "400 Bad Request"
-test_header "/not/in/config" "400 Bad Request"
+test_header "/" "404 Not Found" # Bad request if no corresponding handler
+test_header "/not/in/config" "404 Not Found"
+test_header "/echo2" "404 Not Found"
 
 test_header "/static/" "404 Not Found"
 test_header "/static/missing" "404 Not Found"
