@@ -23,11 +23,7 @@
 
 using boost::optional;
 
-NginxConfig::NginxConfig() : urlToServiceName{{"/", "echo"}}, urlToLinux{} {
-}
-
-void NginxConfig::free_memory() {
-	statements_.clear();
+NginxConfig::NginxConfig() {
 }
 
 int NginxConfig::get_port() {
@@ -79,44 +75,4 @@ int NginxConfig::get_port() {
 	// default port number
 	INFO << "failed to find a port number from config, using 80 by default";
 	return 80;
-}
-
-void NginxConfig::extract_targets() {
-	urlToLinux.clear();
-	urlToServiceName.clear();
-
-	for (const auto &statement : statements_) {
-		auto tokens = statement->tokens_;
-		if (tokens.size() > 0 && tokens[0] == "server") {
-			for (const auto &substatement : statement->child_block_->statements_) {
-				if (substatement->tokens_.size() > 0 && substatement->tokens_[0] == "static") {
-					for (const auto &path_reg : substatement->child_block_->statements_) {
-						if (path_reg->tokens_.size() < 2) {
-							ERROR << "missing filesystem mapping: " << path_reg->tokens_[0];
-							continue;
-						}
-
-						else if (path_reg->tokens_.size() > 2) {
-							ERROR << "too many tokens in static path mapping: " << path_reg->tokens_[0];
-							continue;
-						}
-
-						urlToServiceName.push_back({path_reg->tokens_[0], "static"});
-						urlToLinux.insert({path_reg->tokens_[0], path_reg->tokens_[1]});
-						INFO << "registered static path mapping: " << path_reg->tokens_[0] << " -> " << path_reg->tokens_[1];
-					}
-				}
-				if (substatement->tokens_.size() > 0 && substatement->tokens_[0] == "echo") {
-					for (const auto &path_reg : substatement->child_block_->statements_) {
-						if (path_reg->tokens_.size() > 1) {
-							ERROR << "too many tokens in echo path registration: " << path_reg->tokens_[0];
-							continue;
-						}
-						urlToServiceName.push_back({path_reg->tokens_[0], "echo"});
-						INFO << "registered echo path: " << path_reg->tokens_[0];
-					}
-				}
-			}
-		}
-	}
 }

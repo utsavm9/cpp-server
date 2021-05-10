@@ -103,3 +103,46 @@ TEST_F(NginxConfigParserTest, EscapeQuotes) {
 	ASSERT_NO_THROW(parsed_string = out_config_.statements_[0]->tokens_[0]) << "config has wrong structure, parsed from: " << filepath;
 	ASSERT_EQ(parsed_string, "string with \" escaped quotes");
 }
+
+TEST_F(NginxConfigParserTest, ParseArgs) {
+	ASSERT_DEATH(
+	    {
+		    NginxConfig config;
+		    const char *argv[] = {(char *)("program-name")};
+		    NginxConfigParser::parse_args(1, argv, &config);
+	    },
+	    "");
+
+	ASSERT_DEATH(
+	    {
+		    const char *argv[2];
+		    argv[0] = (char *)("program-name");
+		    argv[1] = (char *)("file_name");
+		    NginxConfigParser::parse_args(2, argv, nullptr);
+	    },
+	    "");
+
+	{
+		NginxConfig config;
+		const char *argv_good_config[] = {
+		    (char *)("program-name"),
+		    (char *)("config/port_top_level")};
+
+		boost::filesystem::path filepath(argv_good_config[1]);
+		ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
+		NginxConfigParser::parse_args(2, argv_good_config, &config);
+		EXPECT_EQ(config.get_port(), 100);
+	}
+
+	{
+		NginxConfig config;
+		const char *argv_bad_config[] = {
+		    (char *)("program-name"),
+		    (char *)("parser/missing_opening_braces_config")};
+
+		boost::filesystem::path filepath(argv_bad_config[1]);
+		ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
+		NginxConfigParser::parse_args(2, argv_bad_config, &config);
+		EXPECT_EQ(config.get_port(), 80);
+	}
+}
