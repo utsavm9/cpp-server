@@ -1,13 +1,13 @@
 #include "session.h"
 
-#include "echoService.h"
+#include "echoHandler.h"
 #include "gtest/gtest.h"
 
 namespace http = boost::beast::http;
 
-class MockService : public Service {
+class MockRequestHandler : public RequestHandler {
    public:
-	MockService(std::string response) : response(response) {
+	MockRequestHandler(std::string response) : response(response) {
 	}
 
 	std::string make_response(__attribute__((unused)) http::request<http::string_body> req) {
@@ -30,14 +30,14 @@ class MockService : public Service {
 TEST(Session, ConstructResponse) {
 	boost::asio::io_context io_context;
 	NginxConfig *config = new NginxConfig();
-	std::vector<std::pair<std::string, Service *>> url_to_handlers;
+	std::vector<std::pair<std::string, RequestHandler *>> url_to_handlers;
 	int max_len = 1024;
 	std::string http_ok = "HTTP/1.1 200 OK";
 	std::string http_bad_request = "HTTP/1.1 400 Bad Request";
 
 	// create new session
-	url_to_handlers.push_back(std::make_pair("/foo", new MockService(http_ok)));
-	url_to_handlers.push_back(std::make_pair("/foo/bar", new MockService(http_ok)));
+	url_to_handlers.push_back(std::make_pair("/foo", new MockRequestHandler(http_ok)));
+	url_to_handlers.push_back(std::make_pair("/foo/bar", new MockRequestHandler(http_ok)));
 	session new_session(io_context, config, url_to_handlers, max_len);
 
 	// test max_len
@@ -63,7 +63,7 @@ TEST(Session, ConstructResponse) {
 	pos = normal_response_test.find(http_ok);
 	EXPECT_EQ(pos, 0);
 
-	// test bad request (no service handler)
+	// test bad request (no request handler)
 	url_to_handlers.clear();
 	new_session.change_data("GET /echo HTTP/1.1\r\n\r\n");
 	std::string bad_req_test = new_session.construct_response(max_len);

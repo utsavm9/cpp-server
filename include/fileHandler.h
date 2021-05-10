@@ -6,15 +6,15 @@
 #include <string>
 
 #include "config.h"
-#include "service.h"
+#include "requestHandler.h"
 
 namespace http = boost::beast::http;
 namespace fs = boost::filesystem;
 
-class FileService : public Service {
+class FileHandler : public RequestHandler {
    public:
-	FileService(const std::string& prefix, const std::string& linux_dir);
-	FileService(const std::string& url_prefix, const NginxConfig& config);
+	FileHandler(const std::string& prefix, const std::string& linux_dir);
+	FileHandler(const std::string& url_prefix, const NginxConfig& config);
 	virtual http::response<http::string_body> handle_request(const http::request<http::string_body>& request);
 
 	std::string get_mime(std::string target);

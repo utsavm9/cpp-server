@@ -1,4 +1,4 @@
-#include "echoService.h"
+#include "echoHandler.h"
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -8,15 +8,15 @@
 
 namespace http = boost::beast::http;
 
-EchoService::EchoService(const std::string& prefix)
+EchoHandler::EchoHandler(const std::string& prefix)
     : url_prefix(prefix) {
 }
 
-EchoService::EchoService(const std::string& p, __attribute__((unused)) const NginxConfig& config)
+EchoHandler::EchoHandler(const std::string& p, __attribute__((unused)) const NginxConfig& config)
     : url_prefix(p) {
 }
 
-http::response<http::string_body> EchoService::handle_request(const http::request<http::string_body>& request) {
+http::response<http::string_body> EchoHandler::handle_request(const http::request<http::string_body>& request) {
 	http::response<http::string_body> res;
 	res.version(11);
 	res.result(http::status::ok);
@@ -27,6 +27,6 @@ http::response<http::string_body> EchoService::handle_request(const http::reques
 	return res;
 }
 
-std::string EchoService::get_url_prefix() {
+std::string EchoHandler::get_url_prefix() {
 	return this->url_prefix;
 }

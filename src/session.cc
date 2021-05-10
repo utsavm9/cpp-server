@@ -5,13 +5,13 @@
 
 #include "config.h"
 #include "logger.h"
-#include "service.h"
+#include "requestHandler.h"
 
 using boost::asio::ip::tcp;
 using error_code = boost::system::error_code;
 namespace http = boost::beast::http;
 
-session::session(boost::asio::io_context& io_context, NginxConfig* c, std::vector<std::pair<std::string, Service*>>& utoh, int max_len)
+session::session(boost::asio::io_context& io_context, NginxConfig* c, std::vector<std::pair<std::string, RequestHandler*>>& utoh, int max_len)
     : socket_(io_context), config(c), urlToServiceHandler(utoh), max_length(max_len) {
 	INFO << "constructed a new session";
 	data_ = new char[max_length];
@@ -61,7 +61,7 @@ void session::handle_write(const boost::system::error_code& error) {
 std::string session::construct_response(size_t bytes_transferred) {
 	if ((int)bytes_transferred > max_length) {  //this method shouldn't be called with these parameters
 		ERROR << "session received a request which was larger than the maximum it could handle, internal server error";
-		return Service::internal_server_error();
+		return RequestHandler::internal_server_error();
 	}
 
 	std::string req_str = std::string(data_, data_ + bytes_transferred);
@@ -75,7 +75,7 @@ std::string session::construct_response(size_t bytes_transferred) {
 	// Malformed request
 	if (err) {
 		ERROR << "error while parsing request, " << err.category().name() << ": " << err.message() << ", echoing back request by default";
-		return Service::bad_request();
+		return RequestHandler::bad_request();
 	}
 
 	http::request<http::string_body> req = parser.get();
@@ -84,29 +84,29 @@ std::string session::construct_response(size_t bytes_transferred) {
 	std::string target(req.target());
 	size_t longest_prefix_match = 0;
 	std::string handler_url = "";
-	Service* correct_handler = nullptr;
+	RequestHandler* correct_handler = nullptr;
 
 	//find correct handler (longest matching prefix)
-	for (std::pair<std::string, Service*> service_mapping : urlToServiceHandler) {
-		std::string service_url_prefix = service_mapping.first;
-		size_t prefix_len = service_url_prefix.size();
+	for (std::pair<std::string, RequestHandler*> handler_mapping : urlToServiceHandler) {
+		std::string handler_url_prefix = handler_mapping.first;
+		size_t prefix_len = handler_url_prefix.size();
 
-		if (target.substr(0, prefix_len) == service_url_prefix && prefix_len > longest_prefix_match) {
+		if (target.substr(0, prefix_len) == handler_url_prefix && prefix_len > longest_prefix_match) {
 			longest_prefix_match = prefix_len;
-			correct_handler = service_mapping.second;
-			handler_url = service_url_prefix;
+			correct_handler = handler_mapping.second;
+			handler_url = handler_url_prefix;
 		}
 	}
 
 	if (correct_handler) {
 		INFO << "Handler mapped to '" << handler_url << "' is being used to create a response";
 		http::response<http::string_body> res = correct_handler->handle_request(req);
-		return Service::to_string(res);
+		return RequestHandler::to_string(res);
 	}
 
-	INFO << "no service handler exists for " << req.method() << " request from user agent '" << req[http::field::user_agent] << "'";
+	INFO << "no request handler exists for " << req.method() << " request from user agent '" << req[http::field::user_agent] << "'";
 
-	return Service::bad_request();
+	return RequestHandler::bad_request();
 }
 
 void session::change_data(std::string new_data) {

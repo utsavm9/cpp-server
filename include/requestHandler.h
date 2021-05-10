@@ -6,7 +6,7 @@
 
 namespace http = boost::beast::http;
 
-class Service {
+class RequestHandler {
    public:
 	// Returns a response as a string for the given request
 	virtual http::response<http::string_body> handle_request(const http::request<http::string_body>& request) = 0;
@@ -15,7 +15,6 @@ class Service {
 	static std::string bad_request();
 
 	// Returns a 404 not found response
-	static std::string not_found_error();
 	http::response<http::string_body> not_found_error_res();
 
 	// Returns a 500 server error

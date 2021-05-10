@@ -4,14 +4,14 @@
 #include <vector>
 
 #include "config.h"
-#include "service.h"
+#include "requestHandler.h"
 
 using boost::asio::ip::tcp;
 
 class session {
    public:
 	// takes in config and url_to_handler mapping from server, with max_len buffer size
-	session(boost::asio::io_context &io_context, NginxConfig *c, std::vector<std::pair<std::string, Service *>> &utoh, int max_len);
+	session(boost::asio::io_context &io_context, NginxConfig *c, std::vector<std::pair<std::string, RequestHandler *>> &utoh, int max_len);
 	~session();
 
 	tcp::socket &socket();
@@ -28,7 +28,7 @@ class session {
 	tcp::socket socket_;
 
 	NginxConfig *config;
-	std::vector<std::pair<std::string, Service *>> urlToServiceHandler;
+	std::vector<std::pair<std::string, RequestHandler *>> urlToServiceHandler;
 
 	int max_length;
 	char *data_;

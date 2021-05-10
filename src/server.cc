@@ -7,11 +7,11 @@
 #include <unordered_map>
 
 #include "config.h"
-#include "echoService.h"
-#include "fileService.h"
+#include "echoHandler.h"
+#include "fileHandler.h"
 #include "logger.h"
-#include "notfoundService.h"
-#include "service.h"
+#include "notfoundHandler.h"
+#include "requestHandler.h"
 #include "session.h"
 
 using boost::asio::ip::tcp;
@@ -27,25 +27,25 @@ server::server(boost::asio::io_context& io_context, NginxConfig c)
 		auto tokens = statement->tokens_;
 
 		if (tokens.size() >= 3 && tokens[0] == "location") {
-			std::string service_name = tokens[2];
+			std::string handler_name = tokens[2];
 
 			std::string url_prefix = tokens[1];
-			Service* current_handler = nullptr;
+			RequestHandler* current_handler = nullptr;
 
-			if (service_name == "EchoHandler") {
-				current_handler = new EchoService(url_prefix, *(statement->child_block_));
-				urlToServiceHandler.push_back(std::make_pair(url_prefix, current_handler));
-				INFO << "registered echo service for url prefix '" << url_prefix << "'";
-			} else if (service_name == "StaticHandler") {
-				current_handler = new FileService(url_prefix, *(statement->child_block_));
-				urlToServiceHandler.push_back(std::make_pair(url_prefix, current_handler));
-				INFO << "registered static service for url prefix '" << url_prefix << "'";
-			} else if (service_name == "404Handler") {
-				current_handler = new NotFoundService(url_prefix, *(statement->child_block_));
-				urlToServiceHandler.push_back(std::make_pair(url_prefix, current_handler));
-				INFO << "registered notfound service for url prefix '" << url_prefix << "'";
+			if (handler_name == "EchoHandler") {
+				current_handler = new EchoHandler(url_prefix, *(statement->child_block_));
+				urlToRequestHandler.push_back(std::make_pair(url_prefix, current_handler));
+				INFO << "registered echo handler for url prefix '" << url_prefix << "'";
+			} else if (handler_name == "StaticHandler") {
+				current_handler = new FileHandler(url_prefix, *(statement->child_block_));
+				urlToRequestHandler.push_back(std::make_pair(url_prefix, current_handler));
+				INFO << "registered static handler for url prefix '" << url_prefix << "'";
+			} else if (handler_name == "404Handler") {
+				current_handler = new NotFoundHandler(url_prefix, *(statement->child_block_));
+				urlToRequestHandler.push_back(std::make_pair(url_prefix, current_handler));
+				INFO << "registered notfound handler for url prefix '" << url_prefix << "'";
 			} else {
-				ERROR << "unexpected service name '" << service_name << "' parsed from configs";
+				ERROR << "unexpected handler name '" << handler_name << "' parsed from configs";
 			}
 		}
 	}
@@ -54,7 +54,7 @@ server::server(boost::asio::io_context& io_context, NginxConfig c)
 }
 
 void server::start_accept() {
-	session* new_session = new session(io_context_, &config_, urlToServiceHandler, 1024);
+	session* new_session = new session(io_context_, &config_, urlToRequestHandler, 1024);
 	acceptor_.async_accept(new_session->socket(),
 	                       boost::bind(&server::handle_accept, this, new_session,
 	                                   boost::asio::placeholders::error));

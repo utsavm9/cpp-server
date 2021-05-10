@@ -6,7 +6,7 @@
 #include "config.h"
 #include "session.h"
 #include "parser.h"
-#include "service.h"
+#include "requestHandler.h"
 
 class server {
    public:
@@ -25,7 +25,7 @@ class server {
 	NginxConfigParser config_parser;
 	NginxConfig config;
 
-	std::vector<std::pair<std::string, Service*>> urlToServiceHandler;
+	std::vector<std::pair<std::string, RequestHandler*>> urlToRequestHandler;
 
 	void start_accept();
 

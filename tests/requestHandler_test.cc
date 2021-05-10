@@ -1,43 +1,23 @@
 #include <boost/filesystem.hpp>
 #include <unordered_map>
 
-#include "echoService.h"
-#include "fileService.h"
+#include "echoHandler.h"
+#include "fileHandler.h"
 #include "gtest/gtest.h"
-#include "notfoundService.h"
+#include "notfoundHandler.h"
 #include "parser.h"
-#include "service.h"
+#include "requestHandler.h"
 
 namespace fs = boost::filesystem;
 
-/*TEST(ServiceTest, UnitTests) {
-	Service sv;
-	http::request<http::string_body> req;
-	http::response<http::string_body> res;
-
-	// Ensure cannot handle requests
-	EXPECT_FALSE(sv.can_handle(req));
-
-	// Ensure nothing is servered by the default service
-	std::string s = sv.make_response(req);
-	EXPECT_EQ(s.find("OK"), std::string::npos);
-
-	// Check other HTTP error responses
-	s = sv.bad_request();
-	EXPECT_NE(s.find("400 Bad Request"), std::string::npos);
-
-	s = sv.not_found_error();
-	EXPECT_NE(s.find("404 Not Found"), std::string::npos);
-}*/
-
-TEST(EchoServiceTest, UnitTests) {
+TEST(EchoHandlerTest, UnitTests) {
 	NginxConfig config;
 	NginxConfigParser p;
 	std::istringstream configStream;
 
 	configStream.str("");
 	p.Parse(&configStream, &config);
-	EchoService esv("/echo", config);
+	EchoHandler esv("/echo", config);
 
 	std::string s;
 	http::request<http::string_body> req;
@@ -58,7 +38,7 @@ TEST(NotFoundServiceTest, UnitTests) {
 
 	configStream.str("");
 	p.Parse(&configStream, &config);
-	NotFoundService esv("/", config);
+	NotFoundHandler esv("/", config);
 
 	std::string s;
 	http::request<http::string_body> req;
@@ -78,7 +58,7 @@ TEST(FileServiceTest, UnitTests) {
 
 	configStream.str("root \".\";");
 	p.Parse(&configStream, &config);
-	FileService fsv("/static", config);
+	FileHandler fsv("/static", config);
 
 	std::string s;
 	http::request<http::string_body> req;
@@ -130,8 +110,8 @@ TEST(FileServiceTest, ReadFile) {
 	testfile.close();
 	ASSERT_TRUE(fs::exists("test.txt")) << "test file does not exist even though it was just created";
 
-	// File service to serve files from current directory
-	FileService fsv("/static", ".");
+	// File handler to serve files from current directory
+	FileHandler fsv("/static", ".");
 
 	// Construct request
 	http::request<http::string_body> req;
@@ -139,7 +119,7 @@ TEST(FileServiceTest, ReadFile) {
 	req.version(11);
 	req.target("/static/test.txt");
 
-	// Check if file service can get the file
+	// Check if file handler can get the file
 	std::string res = fsv.to_string(fsv.handle_request(req));
 	EXPECT_NE(res.find("sample string"), std::string::npos) << "requested file was not served, response was: " << res;
 
@@ -154,17 +134,17 @@ TEST(FileServiceTest, NewConstructor) {
 
 	configStream.str("root \"./files\";  # supports relative path");
 	p.Parse(&configStream, &config);
-	FileService fsv("/static", config);
+	FileHandler fsv("/static", config);
 	EXPECT_EQ("./files", fsv.get_linux_dir());
 }
 
-TEST(EchoServiceTest, NewConstructor) {
+TEST(EchoHandlerTest, NewConstructor) {
 	NginxConfig config;
 	NginxConfigParser p;
 	std::istringstream configStream;
 
 	configStream.str("root \"./files\";  # supports relative path");
 	p.Parse(&configStream, &config);
-	EchoService esv("/echo", config);
+	EchoHandler esv("/echo", config);
 	EXPECT_EQ("/echo", esv.get_url_prefix());
 }

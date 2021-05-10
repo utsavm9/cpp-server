@@ -1,4 +1,4 @@
-#include "fileService.h"
+#include "fileHandler.h"
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -10,11 +10,11 @@
 namespace http = boost::beast::http;
 namespace fs = boost::filesystem;
 
-FileService::FileService(const std::string& p, const std::string& l)
+FileHandler::FileHandler(const std::string& p, const std::string& l)
     : url_prefix(p), linux_dir(l) {
 }
 
-FileService::FileService(const std::string& prefix, const NginxConfig& config)
+FileHandler::FileHandler(const std::string& prefix, const NginxConfig& config)
     : url_prefix(prefix) {
 	try {
 		linux_dir = config.statements_[0]->tokens_[1];
@@ -23,7 +23,7 @@ FileService::FileService(const std::string& prefix, const NginxConfig& config)
 	}
 }
 
-http::response<http::string_body> FileService::handle_request(const http::request<http::string_body>& request) {
+http::response<http::string_body> FileHandler::handle_request(const http::request<http::string_body>& request) {
 	std::string target(request.target());
 	// Identify if index.html is needed
 	if (target.size() > 0 && target[target.size() - 1] == '/') {
@@ -71,7 +71,7 @@ std::string getExtension(std::string filename) {
 
 // Adapted from
 // https://www.boost.org/doc/libs/develop/libs/beast/example/advanced/server/advanced_server.cpp
-std::string FileService::get_mime(std::string target) {
+std::string FileHandler::get_mime(std::string target) {
 	std::string extension = getExtension(target);
 	if (extension == ".htm") return "text/html";
 	if (extension == ".html") return "text/html";
@@ -98,6 +98,6 @@ std::string FileService::get_mime(std::string target) {
 	return "text/plain";
 }
 
-fs::path FileService::get_linux_dir() {
+fs::path FileHandler::get_linux_dir() {
 	return this->linux_dir;
 }

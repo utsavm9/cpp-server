@@ -5,14 +5,14 @@
 #include <string>
 
 #include "config.h"
-#include "service.h"
+#include "requestHandler.h"
 
 namespace http = boost::beast::http;
 
-class NotFoundService : public Service {
+class NotFoundHandler : public RequestHandler {
    public:
-	NotFoundService(const std::string& prefix);
-	NotFoundService(const std::string& url_prefix, __attribute__((unused)) const NginxConfig& config);
+	NotFoundHandler(const std::string& prefix);
+	NotFoundHandler(const std::string& url_prefix, __attribute__((unused)) const NginxConfig& config);
 	virtual http::response<http::string_body> handle_request(const http::request<http::string_body>& request);
 
 	std::string get_url_prefix();

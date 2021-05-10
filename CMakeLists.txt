@@ -39,16 +39,16 @@ add_library(config src/config.cc)
 add_library(session src/session.cc)
 add_library(server src/server.cc)
 add_library(logger src/logger.cc)
-add_library(services src/service.cc src/echoService.cc src/fileService.cc src/notfoundService.cc)
+add_library(requestHandler src/requestHandler.cc src/echoHandler.cc src/fileHandler.cc src/notfoundHandler.cc)
 
 # Generate the server executable
 add_executable(webserver src/main.cc)
 target_link_libraries(webserver config parser logger server Boost::system pthread Boost::filesystem Boost::regex Boost::log_setup Boost::log)
-target_link_libraries(server session services)
+target_link_libraries(server session requestHandler)
 target_link_libraries(session parser)
 
 # Generate the test executable
-add_executable(unit_tests tests/parser_test.cc tests/config_test.cc tests/server_test.cc tests/logger_test.cc tests/services_test.cc tests/session_test.cc)
+add_executable(unit_tests tests/parser_test.cc tests/config_test.cc tests/server_test.cc tests/logger_test.cc tests/requestHandler_test.cc tests/session_test.cc)
 target_link_libraries(unit_tests 
 	parser config server logger 
 	gtest_main 
@@ -60,7 +60,7 @@ gtest_discover_tests(unit_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/te
 
 # Coverage Report
 include(cmake/CodeCoverageReportConfig.cmake)
-generate_coverage_report(TARGETS webserver parser config session server services logger TESTS unit_tests)
+generate_coverage_report(TARGETS webserver parser config session server requestHandler logger TESTS unit_tests)
 
 # Integration tests
 file(GLOB_RECURSE TestDriver */integration/testDriver.sh)
