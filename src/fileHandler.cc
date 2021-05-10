@@ -10,10 +10,6 @@
 namespace http = boost::beast::http;
 namespace fs = boost::filesystem;
 
-FileHandler::FileHandler(const std::string& p, const std::string& l)
-    : url_prefix(p), linux_dir(l) {
-}
-
 FileHandler::FileHandler(const std::string& prefix, const NginxConfig& config)
     : url_prefix(prefix) {
 	try {

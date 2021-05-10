@@ -5,13 +5,12 @@
 #include <string>
 
 #include "config.h"
-#include "requestHandler.h"
+#include "handler.h"
 
 namespace http = boost::beast::http;
 
 class EchoHandler : public RequestHandler {
    public:
-	EchoHandler(const std::string& prefix);
 	EchoHandler(const std::string& url_prefix, __attribute__((unused)) const NginxConfig& config);
 	virtual http::response<http::string_body> handle_request(const http::request<http::string_body>& request);
 

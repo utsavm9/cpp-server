@@ -4,9 +4,9 @@
 #include "echoHandler.h"
 #include "fileHandler.h"
 #include "gtest/gtest.h"
-#include "notfoundHandler.h"
+#include "notFoundHandler.h"
 #include "parser.h"
-#include "requestHandler.h"
+#include "handler.h"
 
 namespace fs = boost::filesystem;
 
@@ -102,7 +102,7 @@ TEST(FileServiceTest, UnitTests) {
 	}
 }
 
-TEST(FileServiceTest, ReadFile) {
+TEST(FileHandlerTest, ReadFile) {
 	// Create a file and ensure it exists
 	std::ofstream testfile("test.txt");
 	ASSERT_TRUE(testfile) << "could not create a test file, aborting test";
@@ -111,7 +111,13 @@ TEST(FileServiceTest, ReadFile) {
 	ASSERT_TRUE(fs::exists("test.txt")) << "test file does not exist even though it was just created";
 
 	// File handler to serve files from current directory
-	FileHandler fsv("/static", ".");
+	NginxConfig config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("root \".\";  # supports relative path");
+	p.Parse(&configStream, &config);
+	FileHandler fsv("/static", config);
 
 	// Construct request
 	http::request<http::string_body> req;
@@ -127,7 +133,7 @@ TEST(FileServiceTest, ReadFile) {
 	ASSERT_TRUE(fs::remove("test.txt")) << "test file got deleted already unexpectedly";
 }
 
-TEST(FileServiceTest, NewConstructor) {
+TEST(FileHandlerTest, NewConstructor) {
 	NginxConfig config;
 	NginxConfigParser p;
 	std::istringstream configStream;

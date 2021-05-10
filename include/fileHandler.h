@@ -6,14 +6,13 @@
 #include <string>
 
 #include "config.h"
-#include "requestHandler.h"
+#include "handler.h"
 
 namespace http = boost::beast::http;
 namespace fs = boost::filesystem;
 
 class FileHandler : public RequestHandler {
    public:
-	FileHandler(const std::string& prefix, const std::string& linux_dir);
 	FileHandler(const std::string& url_prefix, const NginxConfig& config);
 	virtual http::response<http::string_body> handle_request(const http::request<http::string_body>& request);
 

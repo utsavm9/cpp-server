@@ -6,7 +6,7 @@
 #include "config.h"
 #include "session.h"
 #include "parser.h"
-#include "requestHandler.h"
+#include "handler.h"
 
 class server {
    public:
