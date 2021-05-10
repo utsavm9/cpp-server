@@ -22,17 +22,17 @@ TEST(ServerTest, ServeForever) {
 	NginxConfigParser p;
 	std::istringstream configStream;
 
-	configStream.str("server { port 8080; }");
+	configStream.str(
+	    "port 8080; # The port my server listens on\n"
+	    "location \"/echo\" EchoHandler {}\n"
+	    "location \"/print\" EchoHandler {}\n"
+	    "location \"/static\" StaticHandler {\n"
+	    "root \"../data/static_data\";\n"
+	    "}\n"
+	    "location \"/\" 404Handler{}\n"
+	    "location \"/notvalid\" ErrorButServerShouldntCrash{}\n");
 	p.Parse(&configStream, &config);
 	ASSERT_EQ(config.get_port(), 8080);
-	config.urlToServiceName = std::vector<std::pair<std::string, std::string>>{
-	    {"/static", "static"},
-	    {"/images", "static"},
-	    {"/echo", "echo"},
-	    {"/games", "game"},
-	};
-	config.urlToLinux = std::unordered_map<std::string, std::string>{
-	    {"/static", "~/Desktop/"}, {"/unknown", "/Images"}};
 	std::thread server_thread(server_runner, &io_context, config, &done);
 
 	// Wait for server to start-up
