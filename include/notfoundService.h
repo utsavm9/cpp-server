@@ -2,25 +2,22 @@
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
-#include <boost/filesystem.hpp>
 #include <string>
 
 #include "config.h"
 #include "service.h"
 
 namespace http = boost::beast::http;
-namespace fs = boost::filesystem;
 
-class FileService : public Service {
+class NotFoundService : public Service {
    public:
-	FileService(const std::string& prefix, const std::string& linux_dir);
-	FileService(const std::string& url_prefix, const NginxConfig& config);
+	NotFoundService(const std::string& prefix);
+	NotFoundService(const std::string& url_prefix, __attribute__((unused)) const NginxConfig& config);
 	virtual http::response<http::string_body> handle_request(const http::request<http::string_body>& request);
 
-	std::string get_mime(std::string target);
-	fs::path get_linux_dir();
+	std::string get_url_prefix();
 
    private:
+	// Serve for these url suffixes. eg. "/" to serve all valid targets
 	std::string url_prefix;
-	fs::path linux_dir;
 };

@@ -100,7 +100,8 @@ std::string session::construct_response(size_t bytes_transferred) {
 
 	if (correct_handler) {
 		INFO << "Handler mapped to '" << handler_url << "' is being used to create a response";
-		return correct_handler->make_response(req);
+		http::response<http::string_body> res = correct_handler->handle_request(req);
+		return Service::to_string(res);
 	}
 
 	INFO << "no service handler exists for " << req.method() << " request from user agent '" << req[http::field::user_agent] << "'";

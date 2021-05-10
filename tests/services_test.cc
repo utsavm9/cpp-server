@@ -4,6 +4,7 @@
 #include "echoService.h"
 #include "fileService.h"
 #include "gtest/gtest.h"
+#include "notfoundService.h"
 #include "parser.h"
 #include "service.h"
 
@@ -30,20 +31,19 @@ namespace fs = boost::filesystem;
 }*/
 
 TEST(EchoServiceTest, UnitTests) {
+	NginxConfig config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("");
+	p.Parse(&configStream, &config);
+	EchoService esv("/echo", config);
+
 	std::string s;
-	EchoService esv("/echo");
 	http::request<http::string_body> req;
 	req.method(http::verb::get);
-	req.version(11);
-
-	// Testing if difficult targets are correctly idenfied
-	// as the ones being handled or not
-	req.target("");
-	EXPECT_FALSE(esv.can_handle(req));
-	req.target("/other");
-	EXPECT_FALSE(esv.can_handle(req));
 	req.target("/echo");
-	EXPECT_TRUE(esv.can_handle(req));
+	req.version(11);
 
 	// Check OK response
 	s = esv.to_string(esv.handle_request(req));
@@ -51,25 +51,40 @@ TEST(EchoServiceTest, UnitTests) {
 	EXPECT_NE(s.find("GET", 5), std::string::npos);
 }
 
-TEST(FileServiceTest, UnitTests) {
-	FileService fsv("/static", ".");
+TEST(NotFoundServiceTest, UnitTests) {
+	NginxConfig config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("");
+	p.Parse(&configStream, &config);
+	NotFoundService esv("/", config);
+
 	std::string s;
 	http::request<http::string_body> req;
 	req.method(http::verb::get);
+	req.target("/");
 	req.version(11);
 
-	// Testing if difficult targets are correctly idenfied
-	// as the ones being handled or not
-	req.target("");
-	EXPECT_FALSE(fsv.can_handle(req));
-	req.target("static/");
-	EXPECT_FALSE(fsv.can_handle(req));
-	req.target("/other");
-	EXPECT_FALSE(fsv.can_handle(req));
-	req.target("/..");
-	EXPECT_FALSE(fsv.can_handle(req));
-	req.target("/static/");
-	EXPECT_TRUE(fsv.can_handle(req));
+	// Check OK response
+	s = esv.to_string(esv.handle_request(req));
+	EXPECT_NE(s.find("404 Not Found"), std::string::npos);
+}
+
+TEST(FileServiceTest, UnitTests) {
+	NginxConfig config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("root \".\";");
+	p.Parse(&configStream, &config);
+	FileService fsv("/static", config);
+
+	std::string s;
+	http::request<http::string_body> req;
+	req.method(http::verb::get);
+	req.target("/static/file_that_doesn't_exist");
+	req.version(11);
 
 	// Check missing file
 	s = fsv.to_string(fsv.handle_request(req));
@@ -125,7 +140,6 @@ TEST(FileServiceTest, ReadFile) {
 	req.target("/static/test.txt");
 
 	// Check if file service can get the file
-	EXPECT_TRUE(fsv.can_handle(req)) << "file service cannot handle legitimate request";
 	std::string res = fsv.to_string(fsv.handle_request(req));
 	EXPECT_NE(res.find("sample string"), std::string::npos) << "requested file was not served, response was: " << res;
 

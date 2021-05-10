@@ -39,7 +39,7 @@ add_library(config src/config.cc)
 add_library(session src/session.cc)
 add_library(server src/server.cc)
 add_library(logger src/logger.cc)
-add_library(services src/service.cc src/echoService.cc src/fileService.cc)
+add_library(services src/service.cc src/echoService.cc src/fileService.cc src/notfoundService.cc)
 
 # Generate the server executable
 add_executable(webserver src/main.cc)

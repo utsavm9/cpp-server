@@ -10,6 +10,7 @@
 #include "echoService.h"
 #include "fileService.h"
 #include "logger.h"
+#include "notfoundService.h"
 #include "service.h"
 #include "session.h"
 
@@ -40,11 +41,9 @@ server::server(boost::asio::io_context& io_context, NginxConfig c)
 				urlToServiceHandler.push_back(std::make_pair(url_prefix, current_handler));
 				INFO << "registered static service for url prefix '" << url_prefix << "'";
 			} else if (service_name == "404Handler") {
-				/*
 				current_handler = new NotFoundService(url_prefix, *(statement->child_block_));
 				urlToServiceHandler.push_back(std::make_pair(url_prefix, current_handler));
 				INFO << "registered notfound service for url prefix '" << url_prefix << "'";
-				*/
 			} else {
 				ERROR << "unexpected service name '" << service_name << "' parsed from configs";
 			}

@@ -6,16 +6,6 @@
 
 namespace http = boost::beast::http;
 
-std::string Service::make_response(__attribute__((unused)) http::request<http::string_body> req) {
-	// Superclass service is not meant to make responses. Some error occurred on server
-	return internal_server_error();
-}
-
-bool Service::can_handle(__attribute__((unused)) http::request<http::string_body> req) {
-	// By default, a superclass service does not want to handle any request
-	return false;
-}
-
 std::string Service::to_string(http::response<http::string_body> res) {
 	std::stringstream res_str;
 	res_str << res;

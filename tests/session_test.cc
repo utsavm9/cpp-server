@@ -32,8 +32,8 @@ TEST(Session, ConstructResponse) {
 	NginxConfig *config = new NginxConfig();
 	std::vector<std::pair<std::string, Service *>> url_to_handlers;
 	int max_len = 1024;
-	std::string http_ok = "200 OK";
-	std::string http_bad_request = "400 Bad Request";
+	std::string http_ok = "HTTP/1.1 200 OK";
+	std::string http_bad_request = "HTTP/1.1 400 Bad Request";
 
 	// create new session
 	url_to_handlers.push_back(std::make_pair("/foo", new MockService(http_ok)));
