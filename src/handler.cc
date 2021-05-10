@@ -13,12 +13,12 @@ std::string RequestHandler::to_string(http::response<http::string_body> res) {
 }
 
 std::string RequestHandler::to_string(http::request<http::string_body> req) {
-	std::stringstream res_str;
-	res_str << req;
-	return res_str.str();
+	std::stringstream req_str;
+	req_str << req;
+	return req_str.str();
 }
 
-std::string RequestHandler::bad_request() {
+http::response<http::string_body> RequestHandler::bad_request() {
 	http::response<http::string_body> res;
 	res.version(11);
 	res.result(http::status::bad_request);
@@ -26,10 +26,10 @@ std::string RequestHandler::bad_request() {
 	res.set(http::field::content_type, "text/plain");
 	res.body() = "Request was malformed.";
 	res.prepare_payload();
-	return RequestHandler::to_string(res);
+	return res;
 }
 
-http::response<http::string_body> RequestHandler::not_found_error_res() {
+http::response<http::string_body> RequestHandler::not_found_error() {
 	http::response<http::string_body> res;
 	res.version(11);
 	res.result(http::status::not_found);
@@ -40,7 +40,7 @@ http::response<http::string_body> RequestHandler::not_found_error_res() {
 	return res;
 }
 
-std::string RequestHandler::internal_server_error() {
+http::response<http::string_body> RequestHandler::internal_server_error() {
 	http::response<http::string_body> res;
 	res.version(11);
 	res.result(http::status::internal_server_error);
@@ -48,5 +48,5 @@ std::string RequestHandler::internal_server_error() {
 	res.set(http::field::content_type, "text/plain");
 	res.body() = "An internal error occurred on the server. Utsav will be fired promptly.";
 	res.prepare_payload();
-	return RequestHandler::to_string(res);
+	return res;
 }

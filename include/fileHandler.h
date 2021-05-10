@@ -22,4 +22,5 @@ class FileHandler : public RequestHandler {
    private:
 	std::string url_prefix;
 	fs::path linux_dir;
+	bool invalid_config;
 };

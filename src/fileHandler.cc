@@ -12,27 +12,56 @@ namespace fs = boost::filesystem;
 
 FileHandler::FileHandler(const std::string& prefix, const NginxConfig& config)
     : url_prefix(prefix) {
+	// Ignore tailing slashes while registering urls
+	if (url_prefix.size() > 0 && url_prefix[url_prefix.size() - 1] == '/') {
+		url_prefix.erase(url_prefix.size() - 1);
+	}
+
 	try {
-		linux_dir = config.statements_[0]->tokens_[1];
+		linux_dir = config.statements_.at(0)->tokens_.at(1);
+		invalid_config = false;
 	} catch (std::exception& e) {
-		FATAL << "exception: " << e.what();
+		FATAL << "exception occurred : " << e.what();
+		invalid_config = true;
 	}
 }
 
 http::response<http::string_body> FileHandler::handle_request(const http::request<http::string_body>& request) {
 	std::string target(request.target());
-	// Identify if index.html is needed
-	if (target.size() > 0 && target[target.size() - 1] == '/') {
-		target.append("index.html");
+	fs::path linux_path;
+
+	if (invalid_config) {
+		return RequestHandler::internal_server_error();
 	}
 
-	fs::path filepath(target.substr(url_prefix.size()));
-	fs::path linux_path(linux_dir / filepath);
+	// Ignore trailing slashes
+	if (target.size() > 0 && target[target.size() - 1] == '/') {
+		target.erase(target.size() - 1);
+	}
+	INFO << "target is: " << target;
 
-	// Check if file exists
-	if (!fs::exists(linux_path)) {
-		ERROR << "could not find path " << linux_path;
-		return not_found_error_res();
+	// Check that linux_dir exists
+	if (!fs::exists(linux_dir)) {
+		INFO << "file handler serving on non-existant linux path: " << linux_dir;
+		return not_found_error();
+	}
+
+	if (!fs::is_directory(linux_dir)) {
+		// If linux_dir is a file actually, ignore the rest of the url
+		INFO << "file handler registered with a file directly: " << linux_dir;
+		linux_path = linux_dir;
+	} else {
+		// Construct the file path from the url
+		INFO << "file handler registered with a directory: " << linux_dir;
+
+		fs::path filepath(target.substr(url_prefix.size()));
+		linux_path = linux_dir / filepath;
+
+		// Check if file exists
+		if (!fs::exists(linux_path) || fs::is_directory(linux_path)) {
+			ERROR << "file handler could not find path: " << linux_path;
+			return not_found_error();
+		}
 	}
 
 	http::response<http::string_body> res;
@@ -95,5 +124,5 @@ std::string FileHandler::get_mime(std::string target) {
 }
 
 fs::path FileHandler::get_linux_dir() {
-	return this->linux_dir;
+	return linux_dir;
 }

@@ -24,5 +24,5 @@ http::response<http::string_body> EchoHandler::handle_request(const http::reques
 }
 
 std::string EchoHandler::get_url_prefix() {
-	return this->url_prefix;
+	return url_prefix;
 }

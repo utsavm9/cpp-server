@@ -4,9 +4,9 @@
 #include <vector>
 
 #include "config.h"
-#include "session.h"
-#include "parser.h"
 #include "handler.h"
+#include "parser.h"
+#include "session.h"
 
 class server {
    public:

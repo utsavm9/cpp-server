@@ -9,9 +9,9 @@
 #include "config.h"
 #include "echoHandler.h"
 #include "fileHandler.h"
+#include "handler.h"
 #include "logger.h"
 #include "notFoundHandler.h"
-#include "handler.h"
 #include "session.h"
 
 using boost::asio::ip::tcp;
