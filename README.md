@@ -44,7 +44,7 @@ to start the server. You can use any configuration file as the argument.
  
 use `ctest` or `make test` to run test cases
 ```
-$ ctest
+$ ctest --output-on-failure
 ```
 or
 ```
@@ -94,3 +94,18 @@ add_library(requestHandler src/requestHandler.cc src/echoHandler.cc src/fileHand
 * To add unit tests add them to the `handler_test.cc` file.
  
 * A well-documented header and source file example can be found at `src/notFoundHandler.cc` and `include/notFoundHandler.h`
+
+## Contribution Guidelines
+
+We use the following CLang code formatting style:
+```json
+{
+	BasedOnStyle: Google,  
+	IndentWidth: 4,  
+	IndentCaseLabels: false,  
+	TabWidth: 4, 
+	UseTab: ForIndentation,  
+	ColumnLimit: 0
+}
+```
+Editors can be configured to pass the above style to clang to override its default settings. For example: In VSCode Preferences → Settings page and under the right tab (User/Remote), the above style can be filled in the `C_Cpp: Clang_format_style` setting.
