@@ -12,6 +12,7 @@
 #include "handler.h"
 #include "logger.h"
 #include "notFoundHandler.h"
+#include "proxyRequestHandler.h"
 #include "session.h"
 
 using boost::asio::ip::tcp;
@@ -58,6 +59,11 @@ RequestHandler* server::create_handler(std::string url_prefix, std::string handl
 	else if (handler_name == "NotFoundHandler") {
 		INFO << "registering not found handler for url prefix: " << url_prefix;
 		return new NotFoundHandler(url_prefix, subconfig);
+	}
+
+	else if (handler_name == "ProxyRequestHandler") {
+		INFO << "registering proxy request handler for url prefix: " << url_prefix;
+		return new ProxyRequestHandler(url_prefix, subconfig);
 	}
 
 	ERROR << "unexpected handler name parsed from config: " << handler_name;
