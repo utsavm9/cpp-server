@@ -45,6 +45,10 @@ start() {
 
 		location / NotFoundHandler {
 		}
+
+		location /status StatusHandler {
+			
+		}
 	"
 
 	# Check if port is free
@@ -151,12 +155,15 @@ test_header "/print/deep/folders" "200 OK"
 test_header "/static/test.html" "200 OK"
 test_header "/static/testing-zip.zip" "200 OK"
 test_header "/static/../static/test.html" "200 OK"
+test_header "/status" "200 OK"
 
 test_header "/echo" "text/plain"
 test_header "/static/test.html" "text/html"
 test_header "/static/testing-zip.zip" "application/zip"
+test_header "/status" "text/html"
 
 test_body "/echo" "GET"
 test_body "/static/test.html" "<html"
+test_body "/status" "<html"
 
 stop

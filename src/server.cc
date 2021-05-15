@@ -14,6 +14,7 @@
 #include "notFoundHandler.h"
 #include "proxyRequestHandler.h"
 #include "session.h"
+#include "statusHandler.h"
 
 using boost::asio::ip::tcp;
 
@@ -48,6 +49,10 @@ RequestHandler* server::create_handler(std::string url_prefix, std::string handl
 		return new ProxyRequestHandler(url_prefix, subconfig);
 	}
 
+	else if (handler_name == "StatusHandler") {
+		INFO << "registering status handler for url prefix: " << url_prefix;
+		return new StatusHandler(url_prefix, subconfig);
+	}
 	ERROR << "unexpected handler name parsed from config: " << handler_name;
 	return nullptr;
 }
@@ -67,14 +72,15 @@ std::vector<std::pair<std::string, RequestHandler*>> server::create_all_handlers
 
 			std::string url_prefix = tokens[1];
 			std::string handler_name = tokens[2];
-			if(url_prefix[url_prefix.size()-1] == '/' && url_prefix != "/"){
-				url_prefix = url_prefix.substr(0, url_prefix.size()-1);
+			if (url_prefix[url_prefix.size() - 1] == '/' && url_prefix != "/") {
+				url_prefix = url_prefix.substr(0, url_prefix.size() - 1);
 			}
 
 			NginxConfig* child_block = statement->child_block_.get();
 			RequestHandler* s = server::create_handler(url_prefix, handler_name, *child_block);
 			if (s != nullptr) {
 				temp_urlToHandler.push_back({url_prefix, s});
+				urlToHandlerName.push_back({url_prefix, handler_name});
 			}
 		}
 	}
@@ -123,3 +129,5 @@ void server::serve_forever(boost::asio::io_context* io_context, NginxConfig& con
 		FATAL << "exception: " << e.what();
 	}
 }
+
+std::vector<std::pair<std::string, std::string>> server::urlToHandlerName;

@@ -106,7 +106,7 @@ std::string session::construct_response(size_t bytes_transferred) {
 
 	if (correct_handler) {
 		INFO << "Handler mapped to '" << handler_url << "' is being used to create a response";
-		http::response<http::string_body> res = correct_handler->handle_request(req);
+		http::response<http::string_body> res = correct_handler->get_response(req);
 		return RequestHandler::to_string(res);
 	}
 

@@ -50,3 +50,16 @@ http::response<http::string_body> RequestHandler::internal_server_error() {
 	res.prepare_payload();
 	return res;
 }
+
+http::response<http::string_body> RequestHandler::get_response(const http::request<http::string_body>& request) {
+	http::response<http::string_body> response = handle_request(request);
+
+	//record url to response code pair
+	std::string url(request.target());
+	std::string res_code = std::to_string(response.result_int());
+	RequestHandler::url_to_res_code.push_back({url, res_code});
+
+	return response;
+}
+
+std::vector<std::pair<std::string, std::string>> RequestHandler::url_to_res_code;

@@ -31,7 +31,10 @@ class server {
 	// Server SIGINT handler, logs program and exists without calling any destructors
 	static void server_sigint(__attribute__((unused)) int s);
 
+	static std::vector<std::pair<std::string, std::string>> urlToHandlerName;
+
    private:
+	
 	std::vector<std::pair<std::string, RequestHandler*>> urlToHandler;
 
 	void start_accept();
