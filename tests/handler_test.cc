@@ -6,8 +6,10 @@
 #include "echoHandler.h"
 #include "fileHandler.h"
 #include "gtest/gtest.h"
+#include "logger.h"
 #include "notFoundHandler.h"
 #include "parser.h"
+#include "proxyRequestHandler.h"
 #include "server.h"
 #include "statusHandler.h"
 
@@ -226,6 +228,47 @@ TEST(NotFoundHandlerTest, UnitTests) {
 	// Check OK response
 	s = esv.to_string(esv.get_response(req));
 	EXPECT_NE(s.find("404 Not Found"), std::string::npos);
+}
+
+TEST(ProxyHandlerTest, UnitTests) {
+	NginxConfig config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("dest \"www.washington.edu\"; port 80;");
+	p.Parse(&configStream, &config);
+	ProxyRequestHandler psv("/uw", config);
+
+	std::string s;
+	http::request<http::string_body> req;
+	req.method(http::verb::get);
+	req.target("/uw");
+	req.version(11);
+
+	// Check OK response
+	s = psv.to_string(psv.get_response(req));
+	EXPECT_NE(s.find("200 OK"), std::string::npos);
+}
+
+TEST(ProxyHandlerTestRedirect, UnitTests) {
+	NginxConfig config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("dest \"www.bit.ly\"; port 80;");
+	p.Parse(&configStream, &config);
+	ProxyRequestHandler psv("/bitly", config);
+
+	std::string s;
+	http::request<http::string_body> req;
+	req.method(http::verb::get);
+	req.target("/bitly");
+	req.version(11);
+
+	// Check OK response
+	s = psv.to_string(psv.get_response(req));
+	INFO << "Bitly Redirect Response: " << s;
+	EXPECT_NE(s.find("301 Moved Permanently"), std::string::npos);
 }
 
 TEST(StatusHandlerTest, UnitTests) {
