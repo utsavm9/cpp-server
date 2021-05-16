@@ -47,7 +47,7 @@ TEST(EchoHandlerTest, UnitTests) {
 		req.version(11);
 
 		// Check OK response
-		s = esv.to_string(esv.handle_request(req));
+		s = esv.to_string(esv.get_response(req));
 		EXPECT_NE(s.find("200 OK"), std::string::npos);
 		EXPECT_NE(s.find("GET", 5), std::string::npos);
 	}
@@ -80,7 +80,7 @@ class FileHandlerTest : public ::testing::Test {
 		req.target(target);
 
 		// Check if file handler can get the file
-		std::string res = fsv.to_string(fsv.handle_request(req));
+		std::string res = fsv.to_string(fsv.get_response(req));
 		EXPECT_NE(res.find("sample string"), std::string::npos) << "requested file was not served, response was: " << res;
 		EXPECT_NE(res.find(mime), std::string::npos) << "wrong mime type of file, response was: " << res;
 
@@ -105,7 +105,7 @@ class FileHandlerTest : public ::testing::Test {
 		req.target(target);
 
 		// Check if file handler can get the file
-		std::string res = fsv.to_string(fsv.handle_request(req));
+		std::string res = fsv.to_string(fsv.get_response(req));
 		EXPECT_EQ(res.find("200 OK"), std::string::npos) << "unexpectedly got a OK response, response was: " << res;
 	}
 };
@@ -126,7 +126,7 @@ TEST_F(FileHandlerTest, UnitTests) {
 	req.version(11);
 
 	// Check missing file
-	s = fsv.to_string(fsv.handle_request(req));
+	s = fsv.to_string(fsv.get_response(req));
 	EXPECT_NE(s.find("404"), std::string::npos);
 
 	// Test MIME
@@ -184,7 +184,7 @@ TEST_F(FileHandlerTest, FileTests) {
 		ASSERT_NO_THROW({
 			FileHandler f("/file", config);
 			http::request<http::string_body> req;
-			std::string res = f.to_string(f.handle_request(req));
+			std::string res = f.to_string(f.get_response(req));
 		});
 	}
 
@@ -224,7 +224,7 @@ TEST(NotFoundHandlerTest, UnitTests) {
 	req.version(11);
 
 	// Check OK response
-	s = esv.to_string(esv.handle_request(req));
+	s = esv.to_string(esv.get_response(req));
 	EXPECT_NE(s.find("404 Not Found"), std::string::npos);
 }
 

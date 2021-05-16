@@ -194,6 +194,7 @@ test_header "/status" "text/html"
 test_body "/echo" "GET"
 test_body "/static/test.html" "<html"
 test_body "/status" "<html"
+test_body "/status" "<td>/static/missing</td><td>404"
 
 
 test_body_content "/static/samueli.jpg" "../data/static_data/samueli.jpg"

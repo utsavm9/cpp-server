@@ -158,5 +158,5 @@ void session::construct_response(http::request<http::string_body>& req, http::re
 	}
 
 	INFO << "session: handler creating the response is mapped to: " << handler_url;
-	res = correct_handler->handle_request(req);
+	res = correct_handler->get_response(req);
 }

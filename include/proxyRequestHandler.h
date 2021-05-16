@@ -11,9 +11,11 @@ namespace http = boost::beast::http;
 class ProxyRequestHandler : public RequestHandler {
    public:
 	ProxyRequestHandler(const std::string &url_prefix, const NginxConfig &config);
-	virtual http::response<http::string_body> handle_request(const http::request<http::string_body> &request);
 
 	std::string get_url_prefix();
+
+   protected:
+	virtual http::response<http::string_body> handle_request(const http::request<http::string_body> &request) override;
 
    private:
 	static http::response<http::string_body> req_synchronous(std::string host, std::string port, const http::request<http::string_body> &request);
