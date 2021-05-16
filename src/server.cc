@@ -2,6 +2,7 @@
 #include "server.h"
 
 #include <boost/asio.hpp>
+#include <boost/asio/strand.hpp>
 #include <boost/bind.hpp>
 #include <iostream>
 #include <unordered_map>
@@ -17,43 +18,44 @@
 #include "statusHandler.h"
 
 using boost::asio::ip::tcp;
+using boost::beast::error_code;
+namespace net = boost::asio;
 
 server::server(boost::asio::io_context& io_context, NginxConfig c)
     : io_context_(io_context),
       config_(c),
-      acceptor_(io_context, tcp::endpoint(tcp::v4(), c.get_port())) {
-	INFO << "server listening on port " << c.get_port();
-	urlToHandler = create_all_handlers(config_);
-
-	start_accept();
+      port_(config_.get_port()),
+      acceptor_(io_context_, tcp::endpoint(tcp::v4(), port_)),
+      urlToHandler_(create_all_handlers(config_)) {
+	INFO << "server: constructed and listening on port " << port_;
 }
 
 RequestHandler* server::create_handler(std::string url_prefix, std::string handler_name, NginxConfig subconfig) {
 	if (handler_name == "EchoHandler") {
-		INFO << "registering echo handler for url prefix: " << url_prefix;
+		INFO << "server: registering echo handler for url prefix: " << url_prefix;
 		return new EchoHandler(url_prefix, subconfig);
 	}
 
 	else if (handler_name == "StaticHandler") {
-		INFO << "registering static handler for url prefix: " << url_prefix;
+		INFO << "server: registering static handler for url prefix: " << url_prefix;
 		return new FileHandler(url_prefix, subconfig);
 	}
 
 	else if (handler_name == "NotFoundHandler") {
-		INFO << "registering not found handler for url prefix: " << url_prefix;
+		INFO << "server: registering not found handler for url prefix: " << url_prefix;
 		return new NotFoundHandler(url_prefix, subconfig);
 	}
 
 	else if (handler_name == "ProxyRequestHandler") {
-		INFO << "registering proxy request handler for url prefix: " << url_prefix;
+		INFO << "server: registering proxy request handler for url prefix: " << url_prefix;
 		return new ProxyRequestHandler(url_prefix, subconfig);
 	}
 
 	else if (handler_name == "StatusHandler") {
-		INFO << "registering status handler for url prefix: " << url_prefix;
+		INFO << "server: registering status handler for url prefix: " << url_prefix;
 		return new StatusHandler(url_prefix, subconfig);
 	}
-	ERROR << "unexpected handler name parsed from config: " << handler_name;
+	ERROR << "server: unexpected handler name parsed from config: " << handler_name;
 	return nullptr;
 }
 
@@ -66,7 +68,7 @@ std::vector<std::pair<std::string, RequestHandler*>> server::create_all_handlers
 
 		if (tokens.size() > 0 && tokens[0] == "location") {
 			if (tokens.size() != 3) {
-				ERROR << "found a location block in config with incorrect syntax";
+				ERROR << "server: found a location block in config with incorrect syntax";
 				continue;
 			}
 
@@ -88,19 +90,57 @@ std::vector<std::pair<std::string, RequestHandler*>> server::create_all_handlers
 }
 
 void server::start_accept() {
-	session* new_session = new session(io_context_, &config_, urlToHandler, 1024);
-	acceptor_.async_accept(new_session->socket(),
-	                       boost::bind(&server::handle_accept, this, new_session,
-	                                   boost::asio::placeholders::error));
+	INFO << "server: preparing to accept a connection";
+
+	// A strand is like a thread+mutex combination
+	// This makes sure that while multiple write operation on DIFFERENT sockets (sessions?)
+	// are happening in parallel, different write operations on the SAME socket (session?)
+	// are happening in a serialized order.
+	auto strand = net::make_strand(io_context_);
+
+	// The this pointer of the current object
+	std::shared_ptr<server> this_pointer = shared_from_this();
+
+	// Storing the intent to call this->handle_accept() or handle_accept(this) in a variable
+	// "bind" will wrap the this->handle_accept() call
+	// "front_handler" allows handle_accpept to be called with variable number
+	// of arguments which do not need to be known during compile time.
+	auto connection_handler = boost::beast::bind_front_handler(&server::handle_accept, this_pointer);
+
+	// Indicating that accpetor should call handle_accept when it accepts a connection.
+	// See https://stackoverflow.com/q/67542333/4726618 for discussion on why connection_handler
+	// uses std::move to be passed here.
+	acceptor_.async_accept(strand, std::move(connection_handler));
 }
 
-void server::handle_accept(session* new_session, const boost::system::error_code& error) {
-	if (!error) {
-		new_session->start();
-	} else {
-		delete new_session;
+void server::handle_accept(error_code err, tcp::socket socket) {
+	// acceptor's async_accept passes the socket to this function when this
+	// handler is called
+
+	if (err) {
+		ERROR << "server: error ocurred while accepting connection: " << err.message();
+		return;
 	}
 
+	INFO << "server: just accepted a connection, creating session for it";
+
+	// Create a session as a shared pointer.
+	// Cannot directly assign the object to a variable because then the session
+	// would be deconstructed at the end of this functions scope, but session
+	// needs to stay alive for longer.
+	// When the session itself no longer needs its own this pointer
+	// (which will happen after closing the session and not assigning any more future async calls)
+	// the session will be automatically destroyed since it is inside a shared pointer.
+	std::shared_ptr<session> s = std::make_shared<session>(&config_, urlToHandler_, std::move(socket));
+
+	// Start the session, which will call do_read and read the data
+	// out of the socket we passed. socket will be destroyed when this function
+	// call ends, but session will take its time to make the response.
+	// Therefore, data from socket must be read by the time
+	// we exit this function call.
+	s->start();
+
+	// This thread should now accept new connections for another session again
 	start_accept();
 }
 
@@ -113,20 +153,31 @@ void server::register_server_sigint() {
 }
 
 void server::server_sigint(__attribute__((unused)) int s) {
-	INFO << "received SIGINT, ending execution";
+	INFO << "server: received SIGINT, ending execution";
 	exit(130);
 }
 
 void server::serve_forever(boost::asio::io_context* io_context, NginxConfig& config) {
-	INFO << "setting up server to serve forever";
+	INFO << "server: setting up to serve forever";
 	server::register_server_sigint();
 
 	try {
+		// We need to have at least one shared pointer to server always
+		// otherwise enabled_shared_from_this will throw an exception.
+		// So, instead of creating a object directly, we will create a shared_ptr for
+		// the server.
+		std::shared_ptr<server> s = std::make_shared<server>(*io_context, config);
+
 		// Start server with port from config
-		server s(*io_context, config);
+		// This will schedule a function call in the event loop
+		s->start_accept();
+
+		// This thread will now forever keep finishing tasks in the event loop
+		// All other functions in the server now have to registers handlers for
+		// future events.
 		io_context->run();
 	} catch (std::exception& e) {
-		FATAL << "exception: " << e.what();
+		FATAL << "server: exception occurred: " << e.what();
 	}
 }
 

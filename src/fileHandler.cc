@@ -74,7 +74,6 @@ http::response<http::string_body> FileHandler::handle_request(const http::reques
 	file.seekg(0, std::ios::beg);
 
 	// Load the file in a string
-	// Currently, extra large files not supported
 	filebody.assign((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
 	res.version(11);  // HTTP/1.1

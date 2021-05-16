@@ -11,75 +11,122 @@ using boost::asio::ip::tcp;
 using error_code = boost::system::error_code;
 namespace http = boost::beast::http;
 
-session::session(boost::asio::io_context& io_context, NginxConfig* c, std::vector<std::pair<std::string, RequestHandler*>>& utoh, int max_len)
-    : socket_(io_context), config(c), urlToHandler(utoh), max_length(max_len) {
-	INFO << "constructed a new session";
-	data_ = new char[max_length];
+session::session(NginxConfig* c, std::vector<std::pair<std::string, RequestHandler*>>& utoh, tcp::socket&& socket)
+    : config(c),
+      urlToHandler(utoh),
+      stream_(std::move(socket)) {
+	INFO << "session: constructed a new session";
 }
 
 session::~session() {
-	delete[] data_;
-	INFO << "session closed";
-}
-
-tcp::socket& session::socket() {
-	return socket_;
+	INFO << "session: closed";
 }
 
 void session::start() {
-	socket_.async_read_some(boost::asio::buffer(data_, max_length),
-	                        boost::bind(&session::handle_read, this,
-	                                    boost::asio::placeholders::error,
-	                                    boost::asio::placeholders::bytes_transferred));
+	INFO << "session: starting a new session";
+	// From Beast example code:
+	// We need to be executing within a strand to perform async operations
+	// on the I/O objects in this session. Although not strictly necessary
+	// for single-threaded contexts, this example code is written to be
+	// thread-safe by default.
+
+	// Executed is something related to a strand or io_context
+	// Entire job of this middle-ware function is to inject this executor
+	auto strand = stream_.get_executor();
+
+	// this pointer of this pointer, wrapped in a shared_ptr
+	std::shared_ptr<session> this_pointer = shared_from_this();
+
+	// this->do_read() will be called once the strand is set-up.
+	auto stand_start_handler = beast::bind_front_handler(&session::do_read, this_pointer);
+
+	// This will submit handle_read for execution to the strand (thread+mutex object)
+	// See https://stackoverflow.com/q/67542333/4726618 on why hanlder needs to be moved.
+	boost::asio::dispatch(strand, std::move(stand_start_handler));
+
+	INFO << "session: finished dispatching the work to a strand";
 }
 
-void session::handle_read(const boost::system::error_code& error, size_t bytes_transferred) {
-	if (!error) {
-		std::string http_response = construct_response(bytes_transferred);
+void session::do_read() {
+	INFO << "session: starting work in a strand";
 
-		// write http response to client
-		boost::asio::async_write(socket_,
-		                         boost::asio::buffer(http_response, http_response.size()),
-		                         boost::bind(&session::handle_write, this,
-		                                     boost::asio::placeholders::error));
-	} else {
-		delete this;
-	}
+	// Make the request empty before reading,
+	// otherwise the operation behavior is undefined.
+	req_ = {};
+
+	// Set the timeout.
+	stream_.expires_after(std::chrono::seconds(30));
+
+	// this pointer of this pointer, wrapped in a shared_ptr
+	std::shared_ptr<session> this_pointer = shared_from_this();
+
+	// Storing the intent to call this->on_read() or on_read(this) in a variable
+	auto stream_read_handler = beast::bind_front_handler(&session::on_read, this_pointer);
+
+	// Asynchronously read out the request out of the stream with socket, use the buffer
+	// for that and then place everything in the request.
+	// Once that is done, call on_read which is wrapped inside stream_read_handler.
+	http::async_read(stream_, buffer_, req_, std::move(stream_read_handler));
 }
 
-void session::handle_write(const boost::system::error_code& error) {
-	if (!error) {
-		socket_.async_read_some(boost::asio::buffer(data_, max_length),
-		                        boost::bind(&session::handle_read, this,
-		                                    boost::asio::placeholders::error,
-		                                    boost::asio::placeholders::bytes_transferred));
-	} else {
-		delete this;
-	}
-}
+void session::on_read(beast::error_code err, std::size_t bytes_transferred) {
+	// async_read also passed us the number of bytes read.
+	// It would have read all of the request and not some part of it.
 
-std::string session::construct_response(size_t bytes_transferred) {
-	if ((int)bytes_transferred > max_length) {  //this method shouldn't be called with these parameters
-		ERROR << "session received a request which was larger than the maximum it could handle, internal server error";
-		return RequestHandler::to_string(RequestHandler::internal_server_error());
+	if (err == http::error::end_of_stream) {
+		beast::error_code ec;
+		stream_.socket().shutdown(tcp::socket::shutdown_send, ec);
+		INFO << "session: stream ended, nothing read which needs processing";
+		return;
 	}
 
-	std::string req_str = std::string(data_, data_ + bytes_transferred);
-	http::request_parser<http::string_body> parser;
-	http::response<http::string_body> res;
-	error_code err;
-
-	// Parse the request
-	parser.put(boost::asio::buffer(req_str), err);
-
-	// Malformed request
 	if (err) {
-		ERROR << "error while parsing request, " << err.category().name() << ": " << err.message() << ", echoing back request by default";
-		return RequestHandler::to_string(RequestHandler::bad_request());
+		ERROR << "session: error occurred while reading from the stream: " << err.message();
+		return;
 	}
 
-	http::request<http::string_body> req = parser.get();
-	INFO << "received " << req.method() << " request, user agent '" << req[http::field::user_agent] << "'";
+	INFO << "session: successfully read a request from the stream of size (bytes): " << bytes_transferred;
+
+	// generate the response from the request stored as a data member in this session object
+	// and store the response in another data member.
+	construct_response(req_, res_);
+
+	// this pointer of this object, wrapped in a shared_ptr
+	std::shared_ptr<session> this_pointer = shared_from_this();
+
+	// Wrap the intent to call this->finished_write() or finished_write(this)
+	// Create a handler object whose job is to call the function we passed it.
+	auto finished_write_handler = beast::bind_front_handler(&session::finished_write, this_pointer, res_.need_eof());
+
+	// Asynchronously write the response back to the stream so that it it sent
+	// and then call finished_write().
+	http::async_write(stream_, res_, std::move(finished_write_handler));
+}
+
+void session::finished_write(bool close, beast::error_code err, std::size_t bytes_transferred) {
+	if (err) {
+		ERROR << "session: error occurred before finishing write: " << err.message();
+		return;
+	}
+
+	if (close) {
+		beast::error_code ec;
+		stream_.socket().shutdown(tcp::socket::shutdown_send, ec);
+		INFO << "session: stream ended";
+		return;
+	}
+
+	INFO << "session: finished writing a response, size (bytes): " << bytes_transferred;
+
+	// Remove the response for the past request
+	res_ = {};
+
+	// we have finished a write, let us read another request from the same connection
+	do_read();
+}
+
+void session::construct_response(http::request<http::string_body>& req, http::response<http::string_body>& res) {
+	INFO << "session: received " << req.method() << " request, user agent '" << req[http::field::user_agent] << "'";
 
 	// add / to make sure the directory name is the same
 	std::string target = std::string(req.target());
@@ -104,17 +151,12 @@ std::string session::construct_response(size_t bytes_transferred) {
 		}
 	}
 
-	if (correct_handler) {
-		INFO << "Handler mapped to '" << handler_url << "' is being used to create a response";
-		http::response<http::string_body> res = correct_handler->get_response(req);
-		return RequestHandler::to_string(res);
+	if (correct_handler == nullptr) {
+		INFO << "session: no request handler exists for " << req.method() << " request from user agent '" << req[http::field::user_agent] << "'";
+		res = RequestHandler::not_found_error();
+		return;
 	}
 
-	INFO << "no request handler exists for " << req.method() << " request from user agent '" << req[http::field::user_agent] << "'";
-
-	return RequestHandler::to_string(RequestHandler::bad_request());
-}
-
-void session::change_data(std::string new_data) {
-	strncpy(data_, new_data.c_str(), max_length);
+	INFO << "session: handler creating the response is mapped to: " << handler_url;
+	res = correct_handler->handle_request(req);
 }

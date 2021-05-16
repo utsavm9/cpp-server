@@ -7,11 +7,7 @@ namespace http = boost::beast::http;
 
 class MockRequestHandler : public RequestHandler {
    public:
-	MockRequestHandler(std::string response) : response(response) {
-	}
-
-	std::string make_response(__attribute__((unused)) http::request<http::string_body> req) {
-		return response;
+	MockRequestHandler(http::response<http::string_body> response) : res_(response) {
 	}
 
 	bool can_handle(__attribute__((unused)) http::request<http::string_body> req) {
@@ -19,60 +15,59 @@ class MockRequestHandler : public RequestHandler {
 	}
 
 	http::response<http::string_body> handle_request(__attribute__((unused)) const http::request<http::string_body> &request) {
-		http::response<http::string_body> res;
-		return res;
+		return res_;
 	}
 
    private:
-	std::string response;
+	http::response<http::string_body> res_;
 };
 
 TEST(Session, ConstructResponse) {
 	boost::asio::io_context io_context;
-	NginxConfig *config = new NginxConfig();
+	auto config = std::make_shared<NginxConfig>();
 	std::vector<std::pair<std::string, RequestHandler *>> url_to_handlers;
-	int max_len = 1024;
-	std::string http_ok = "HTTP/1.1 200 OK";
-	std::string http_bad_request = "HTTP/1.1 400 Bad Request";
+	tcp::socket socket(io_context);
+	auto http_ok = http::response<http::string_body>{http::status::ok, 11};
+	auto http_redirect = http::response<http::string_body>{http::status::permanent_redirect, 11};
 
 	// create new session
-	url_to_handlers.push_back(std::make_pair("/foo", new MockRequestHandler(http_ok)));
-	url_to_handlers.push_back(std::make_pair("/foo/bar", new MockRequestHandler(http_ok)));
-	session new_session(io_context, config, url_to_handlers, max_len);
+	url_to_handlers.push_back({"/foo", new MockRequestHandler(http_ok)});
+	url_to_handlers.push_back({"/foo/bar", new MockRequestHandler(http_redirect)});
+	auto s = std::make_shared<session>(config.get(), url_to_handlers, std::move(socket));
 
-	// test max_len
-	std::string max_len_test = new_session.construct_response(max_len + 1);
-	auto pos = max_len_test.find(http_ok);
-	EXPECT_EQ(pos, std::string::npos);
+	// test no exceptions are thrown in while starting session
+	ASSERT_NO_THROW(s->start());
 
-	// test bad req_str
-	new_session.change_data("foo");
-	std::string bad_req_str_test = new_session.construct_response(max_len);
-	pos = bad_req_str_test.find(http_ok);
-	EXPECT_EQ(pos, std::string::npos);
+	{
+		// Test normal response
+		http::request<http::string_body> req{http::verb::get, "/foo", 11};
+		http::response<http::string_body> res;
+		s->construct_response(req, res);
+		EXPECT_EQ(res.result(), http::status::ok);
+	}
 
-	// test normal response
-	new_session.change_data("GET /foo HTTP/1.1\r\n\r\n");
-	std::string normal_response_test = new_session.construct_response(max_len);
-	pos = normal_response_test.find(http_ok);
-	EXPECT_EQ(pos, 0);
+	{
+		// Test longest prefix match
+		http::request<http::string_body> req{http::verb::get, "/foo/bar/", 11};
+		http::response<http::string_body> res;
+		s->construct_response(req, res);
+		EXPECT_EQ(res.result(), http::status::permanent_redirect);
+	}
 
-	// test longest prefix match
-	new_session.change_data("GET /foo/bar HTTP/1.1\r\n\r\n");
-	normal_response_test = new_session.construct_response(max_len);
-	pos = normal_response_test.find(http_ok);
-	EXPECT_EQ(pos, 0);
+	{
+		// Test unregistered
+		http::request<http::string_body> req{http::verb::get, "/not_registered", 11};
+		http::response<http::string_body> res;
+		s->construct_response(req, res);
+		EXPECT_EQ(res.result(), http::status::not_found);
+	}
 
-	// test /foo hander doesn't handle /foo2
-	new_session.change_data("GET /foo2 HTTP/1.1\r\n\r\n");
-	normal_response_test = new_session.construct_response(max_len);
-	pos = normal_response_test.find(http_ok);
-	EXPECT_EQ(pos, std::string::npos);
-
-	// test bad request (no request handler)
-	url_to_handlers.clear();
-	new_session.change_data("GET /echo HTTP/1.1\r\n\r\n");
-	std::string bad_req_test = new_session.construct_response(max_len);
-	pos = bad_req_test.find(http_ok);
-	EXPECT_EQ(pos, std::string::npos);
+	{
+		// Test that prefix match respects /
+		// and does not match /foo to /foo_continued
+		http::request<http::string_body> req{http::verb::get, "/foo_continued", 11};
+		http::response<http::string_body> res;
+		s->construct_response(req, res);
+		EXPECT_EQ(res.result(), http::status::not_found);
+	}
 }

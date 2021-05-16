@@ -7,7 +7,14 @@
 #include "handler.h"
 #include "session.h"
 
-class server {
+// Adapted from the listener class from
+// the official Boost Beast library examples
+// https://www.boost.org/doc/libs/develop/libs/beast/example/http/server/async/http_server_async.cpp
+
+// Extending from enabled_shared_from_this allows us to
+// have a function called shared_from_this available, which
+// would return this pointer of an object wrapped in a shared_ptr<>.
+class server : public std::enable_shared_from_this<server> {
    public:
 	// Requires a io_context to run, and a NginxConfig config from which
 	// port number and request handlers can be extracted.
@@ -34,14 +41,25 @@ class server {
 	static std::vector<std::pair<std::string, std::string>> urlToHandlerName;
 
    private:
-	
-	std::vector<std::pair<std::string, RequestHandler*>> urlToHandler;
-
+	// Prepare to accept a connection
 	void start_accept();
 
-	void handle_accept(session* new_session, const boost::system::error_code& error);
+	// Create a session and start it, and then prepare to accept another connection
+	void handle_accept(boost::beast::error_code error, tcp::socket socket);
 
+	// Manage the event loop
 	boost::asio::io_context& io_context_;
+
+	// The config with tokens parsed from the file passed to the program
 	NginxConfig config_;
+
+	// Port the server is listening on
+	short port_;
+
+	// Manages the listen-bind-connect and other networking-related
+	// concepts about our socket
 	tcp::acceptor acceptor_;
+
+	// Maps url prefixes to handler pointers
+	std::vector<std::pair<std::string, RequestHandler*>> urlToHandler_;
 };
