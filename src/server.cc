@@ -5,7 +5,9 @@
 #include <boost/asio/strand.hpp>
 #include <boost/bind.hpp>
 #include <iostream>
+#include <thread>
 #include <unordered_map>
+#include <vector>
 
 #include "config.h"
 #include "echoHandler.h"
@@ -172,10 +174,35 @@ void server::serve_forever(boost::asio::io_context* io_context, NginxConfig& con
 		// This will schedule a function call in the event loop
 		s->start_accept();
 
+		// Run server with 4 threads
+		int threads = 4;
+		std::vector<std::thread> threadpool;
+
+		// We will also make the current parent thread do server work
+		threadpool.reserve(threads - 1);
+
+		auto thread_work = [io_context]() {
+			// Makes the current thread a worker
+			// for the event loop's async function calls.
+			io_context->run();
+		};
+
+		for (int i = 0; i < threads - 1; ++i) {
+			// Constructs threads with thread_work
+			threadpool.emplace_back(thread_work);
+		}
+
 		// This thread will now forever keep finishing tasks in the event loop
 		// All other functions in the server now have to registers handlers for
 		// future events.
 		io_context->run();
+
+		// io_context was stopped, need to join all children
+		for (auto& thread : threadpool) {
+			if (thread.joinable()) {
+				thread.join();
+			}
+		}
 	} catch (std::exception& e) {
 		FATAL << "server: exception occurred: " << e.what();
 	}
