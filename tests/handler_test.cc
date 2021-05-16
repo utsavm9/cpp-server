@@ -56,7 +56,7 @@ TEST(EchoHandlerTest, UnitTests) {
 class FileHandlerTest : public ::testing::Test {
    public:
 	// Creates the file at current directory.
-	void test_file_content(std::string url_prefix, std::string location_root, std::string filename, std::string target) {
+	void test_file_content(std::string url_prefix, std::string location_root, std::string filename, std::string target, std::string mime) {
 		// Create a file and ensure it exists
 		std::ofstream testfile(filename);
 		ASSERT_TRUE(testfile) << "could not create a test file, aborting test";
@@ -82,6 +82,7 @@ class FileHandlerTest : public ::testing::Test {
 		// Check if file handler can get the file
 		std::string res = fsv.to_string(fsv.handle_request(req));
 		EXPECT_NE(res.find("sample string"), std::string::npos) << "requested file was not served, response was: " << res;
+		EXPECT_NE(res.find(mime), std::string::npos) << "wrong mime type of file, response was: " << res;
 
 		// Clean up
 		ASSERT_TRUE(fs::remove(filename)) << "test file got deleted already unexpectedly";
@@ -189,13 +190,18 @@ TEST_F(FileHandlerTest, FileTests) {
 
 	{
 		// Check that trailing slashes are ignored
-		test_file_content("/static", ".", "testfile.txt", "/static/testfile.txt");
-		test_file_content("/static/", ".", "testfile.txt", "/static/testfile.txt");
-		test_file_content("/static/", "./", "testfile.txt", "/static/testfile.txt");
-		test_file_content("/static/", "./", "testfile.txt", "/static/testfile.txt/");
+		test_file_content("/static", ".", "testfile.txt", "/static/testfile.txt", "text/plain");
+		test_file_content("/static/", ".", "testfile.txt", "/static/testfile.txt", "text/plain");
+		test_file_content("/static/", "./", "testfile.txt", "/static/testfile.txt", "text/plain");
+		test_file_content("/static/", "./", "testfile.txt", "/static/testfile.txt/", "text/plain");
 
 		// Check that files can be extracted from repos
-		test_file_content("/static/", "./testfile.txt", "testfile.txt", "/static");
+		test_file_content("/static/", "./testfile.txt", "testfile.txt", "/static", "text/plain");
+
+		// Check correct MIME type
+		test_file_content("/static/", "./image.jpg", "image.jpg", "/static", "image/jpeg");
+		test_file_content("/static/", "./image.jpeg", "image.jpeg", "/static", "image/jpeg");
+		test_file_content("/static/", "./hw.zip", "hw.zip", "/static", "application/zip");
 
 		// Check that invalid settings do not return a 200 OK
 		test_not_ok("/static", "nonexistant-repo", "/static/");

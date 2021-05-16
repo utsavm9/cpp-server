@@ -78,7 +78,7 @@ http::response<http::string_body> FileHandler::handle_request(const http::reques
 
 	res.version(11);  // HTTP/1.1
 	res.result(http::status::ok);
-	res.set(http::field::content_type, get_mime(target));
+	res.set(http::field::content_type, get_mime(linux_path.string()));
 	res.set(http::field::server, "koko.cs130.org");
 	res.body() = filebody;
 	res.prepare_payload();
