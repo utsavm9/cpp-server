@@ -90,6 +90,16 @@ TEST(ServerTest, HandlerCreation) {
 		handler = server::create_handler("/", "NotFoundHandler", sub_config);
 		ASSERT_NO_THROW(handler->handle_request(stubReq));
 
+		configStream.str("dest www.washington.edu; port 80;");
+		p.Parse(&configStream, &sub_config);
+		handler = server::create_handler("/", "ProxyRequestHandler", sub_config);
+		ASSERT_NO_THROW(handler->handle_request(stubReq));
+
+		configStream.str("");
+		p.Parse(&configStream, &sub_config);
+		handler = server::create_handler("/", "StatusHandler", sub_config);
+		ASSERT_NO_THROW(handler->handle_request(stubReq));
+
 		configStream.str("");
 		p.Parse(&configStream, &sub_config);
 		handler = server::create_handler("/", "NotARealHandler", sub_config);
@@ -106,7 +116,7 @@ TEST(ServerTest, HandlerCreation) {
 		    "port 8080; # The port my server listens on\n"
 		    "location /echo EchoHandler {}\n"
 		    "location /print EchoHandler {}\n"
-		    "location /static StaticHandler {\n"
+		    "location /static/ StaticHandler {\n"
 		    "root ../data/static_data;\n"
 		    "}\n"
 		    "location / NotFoundHandler {} \n"

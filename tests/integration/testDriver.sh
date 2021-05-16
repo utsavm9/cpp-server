@@ -138,12 +138,40 @@ test_body() {
 	fi
 }
 
+test_body_content() {
+	local OUTPUT="$DIR/output"
+	local HEADER="$DIR/header"
+	local URL="$1"
+	local FILEPATH="$2"
+
+	curl -s -o "$OUTPUT" -D "$HEADER" localhost:"$PORT""$URL"
+
+	diff -s "$FILEPATH" "$OUTPUT"
+	DIFF_RET=$?
+
+	HEADER_CONTENT=$(cat "$HEADER")
+	rm "$OUTPUT"
+	rm "$HEADER"
+
+	if [ $DIFF_RET -ne 0 ]; then
+		warn "server response body not exactly as expected for $URL"
+		echo "Header of response obtained from server:"
+		echo "$HEADER_CONTENT"
+		echo "To reproduce, run"
+		echo curl -s -o "$OUTPUT" -D "$HEADER" localhost:"$PORT""$URL"
+		echo "and match the response with: $FILEPATH"
+
+		stop
+		exit 1
+	fi
+}
+
 # Integration tests
 start
 
-test_header "/" "404 Not Found" # Bad request if no corresponding handler
+test_header "/" "404 Not Found"
 test_header "/not/in/config" "404 Not Found"
-test_header "/echo2" "404 Not Found"
+test_header "/echoContinued" "404 Not Found"
 
 test_header "/static/" "404 Not Found"
 test_header "/static/missing" "404 Not Found"
@@ -162,8 +190,12 @@ test_header "/static/test.html" "text/html"
 test_header "/static/testing-zip.zip" "application/zip"
 test_header "/status" "text/html"
 
+
 test_body "/echo" "GET"
 test_body "/static/test.html" "<html"
 test_body "/status" "<html"
+
+
+test_body_content "/static/samueli.jpg" "../data/static_data/samueli.jpg"
 
 stop
