@@ -1,5 +1,6 @@
 #include "proxyRequestHandler.h"
 
+#include <boost/algorithm/string.hpp>
 #include <boost/asio.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
@@ -69,6 +70,26 @@ http::response<http::string_body> ProxyRequestHandler::req_synchronous(std::stri
 	return res;
 }
 
+void ProxyRequestHandler::replace_relative_html_links(std::string &body) {
+	if (url_prefix == "/" || url_prefix.length() == 0) {
+		return;
+	}
+	std::string encoded_prefix(url_prefix);
+	boost::replace_all(encoded_prefix, "/", "\\2f");
+
+	boost::replace_all(body, "href=\"/", "href=\"" + url_prefix + "/");
+	boost::replace_all(body, "src=\"/", "src=\"" + url_prefix + "/");
+	boost::replace_all(body, "url(\"/", "url(\"" + url_prefix + "/");
+	boost::replace_all(body, "url(\\2f", "url(" + encoded_prefix + "\\2f");
+
+	// Revert the original absolute paths that used "//":
+	// Eg. href="//washington.edu" -> href="/uw//washington.edu" -> href="//washington.edu"
+	boost::replace_all(body, "href=\"" + url_prefix + "//", "href=\"//");
+	boost::replace_all(body, "src=\"" + url_prefix + "//", "src=\"//");
+	boost::replace_all(body, "url(\"" + url_prefix + "//", "url(\"//");
+	boost::replace_all(body, "url(" + encoded_prefix + "\\2f\\2f", "url(\\2f\\2f");
+}
+
 http::response<http::string_body> ProxyRequestHandler::handle_request(const http::request<http::string_body> &request) {
 	if (invalid_config) {
 		return RequestHandler::internal_server_error();
@@ -84,11 +105,16 @@ http::response<http::string_body> ProxyRequestHandler::handle_request(const http
 			target = "/" + target;
 		}
 		proxy_req.target(target);
+		// Only accept unencoded values so we can modify the body
+		proxy_req.set(http::field::accept_encoding, "identity");
 		proxy_req.prepare_payload();
 		http::response<http::string_body> res = req_synchronous(proxy_dest, m_port, proxy_req);
 
 		if (http::to_status_class(res.result()) != http::status_class::redirection ||
 		    res.find(http::field::location) == res.end()) {
+			if (res.find(http::field::content_type) != res.end() && res.at(http::field::content_type).to_string().find("text/html") != std::string::npos) {
+				replace_relative_html_links(res.body());
+			}
 			return res;
 		}
 
