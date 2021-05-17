@@ -52,7 +52,7 @@ add_executable(unit_tests tests/parser_test.cc tests/config_test.cc tests/server
 target_link_libraries(unit_tests 
 	parser config server logger 
 	gtest_main 
-	Boost::filesystem Boost::filesystem Boost::regex Boost::log_setup Boost::log
+	Boost::system Boost::filesystem Boost::filesystem Boost::regex Boost::log_setup Boost::log
 )
 
 # Unit tests

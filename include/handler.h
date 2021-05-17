@@ -9,6 +9,7 @@ namespace http = boost::beast::http;
 
 class RequestHandler {
    public:
+	virtual ~RequestHandler() {}
 	// Wraps handle_request and records url to response code pair
 	http::response<http::string_body> get_response(const http::request<http::string_body>& request);
 
@@ -24,7 +25,6 @@ class RequestHandler {
 	// Converts the response into a string
 	static std::string to_string(http::response<http::string_body> res);
 	static std::string to_string(http::request<http::string_body> req);
-
 
 	static std::vector<std::pair<std::string, std::string>> url_to_res_code;
 

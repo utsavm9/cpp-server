@@ -19,7 +19,7 @@ class ProxyRequestHandler : public RequestHandler {
 	virtual http::response<http::string_body> handle_request(const http::request<http::string_body> &request) override;
 
    private:
-	static http::response<http::string_body> req_synchronous(std::string host, std::string port, const http::request<http::string_body> &request);
+	virtual http::response<http::string_body> req_synchronous(const http::request<http::string_body> &request);
 	void replace_relative_html_links(std::string &body);
 	// Serve for these url suffixes. eg. "/" to serve all valid targets
 	std::string url_prefix;

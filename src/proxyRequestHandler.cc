@@ -40,19 +40,19 @@ ProxyRequestHandler::ProxyRequestHandler(const std::string &p, const NginxConfig
 	}
 }
 
-http::response<http::string_body> ProxyRequestHandler::req_synchronous(std::string host, std::string port, const http::request<http::string_body> &request) {
+http::response<http::string_body> ProxyRequestHandler::req_synchronous(const http::request<http::string_body> &request) {
 	net::io_context ioc;
 	tcp::resolver resolver(ioc);
 	beast::tcp_stream stream(ioc);
-	tcp::resolver::query query(host, port);
+	tcp::resolver::query query(proxy_dest, m_port);
 	auto const results = resolver.resolve(query);
 	INFO << "ProxyRequestHandler attempting to connect to host "
-	     << host
+	     << proxy_dest
 	     << " on port "
-	     << port;
+	     << m_port;
 	stream.connect(results);
 	INFO << "ProxyRequestHandler successfully connected to host "
-	     << host
+	     << proxy_dest
 	     << " on "
 	     << stream.socket().remote_endpoint().address().to_string()
 	     << ":"
@@ -108,7 +108,7 @@ http::response<http::string_body> ProxyRequestHandler::handle_request(const http
 		// Only accept unencoded values so we can modify the body
 		proxy_req.set(http::field::accept_encoding, "identity");
 		proxy_req.prepare_payload();
-		http::response<http::string_body> res = req_synchronous(proxy_dest, m_port, proxy_req);
+		http::response<http::string_body> res = req_synchronous(proxy_req);
 
 		if (http::to_status_class(res.result()) != http::status_class::redirection ||
 		    res.find(http::field::location) == res.end()) {
@@ -122,7 +122,7 @@ http::response<http::string_body> ProxyRequestHandler::handle_request(const http
 		std::string redirect_location = res.at(http::field::location).to_string();
 		if (redirect_location.length() > 0 && redirect_location[0] == '/') {
 			// Relative url redirects should be made relative to the proxy
-			redirect_location = proxy_dest + redirect_location;
+			redirect_location = url_prefix + redirect_location;
 		}
 		res.set(http::field::location, redirect_location);
 		return res;
