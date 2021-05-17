@@ -3,6 +3,7 @@
 TESTDRIVER="$0"
 WEBSERVER="$1"
 PORT="$2"
+PROXY_PORT="$3"
 DIR=$(dirname ${TESTDRIVER})
 
 # Utility functions
@@ -15,15 +16,21 @@ warn() {
 
 # Pre-test checks
 if [ ! -x "${WEBSERVER}" ]; then
-	echo "Usage: ${0} <path-to-webserver> <port-num>"
+	echo "Usage: ${0} <path-to-webserver> <port-num> <proxy-port-num>"
 	warn "webserver executable not passed in for integration tests, got '${WEBSERVER}' instead "
 	exit 1
 fi
 
 NUM_REGEX='^[0-9]+$'
 if [[ ! "$PORT" =~ $NUM_REGEX ]]; then
-	echo "Usage: ${0} <path-to-webserver> <port-num>"
+	echo "Usage: ${0} <path-to-webserver> <port-num> <proxy-port-num>"
 	warn "got '$PORT' as the port number, integer expected"
+	exit 1
+fi
+
+if [[ ! "$PROXY_PORT" =~ $NUM_REGEX ]]; then
+	echo "Usage: ${0} <path-to-webserver> <port-num> <proxy-port-num>"
+	warn "got '$PROXY_PORT' as the proxy port number, integer expected"
 	exit 1
 fi
 
@@ -33,7 +40,7 @@ start() {
 	local CONFIG="
 		port $PORT;
 
-		location /static StaticHandler{
+		location /static StaticHandler {
 			root ../data/static_data;
 		}
 
@@ -47,7 +54,40 @@ start() {
 		}
 
 		location /status StatusHandler {
-			
+
+		}
+
+		location /proxy ProxyRequestHandler {
+			dest \"localhost\";
+			port $PROXY_PORT;
+		}
+
+		location \"/bitlyproxy\" ProxyRequestHandler {
+			dest \"www.bit.ly\";
+			port 80;
+		}
+	"
+
+	local PROXY_CONFIG="
+		port $PROXY_PORT;
+
+		location \"/proxystatic\" StaticHandler {
+			root ../data/static_data;
+		}
+
+		location \"/proxyecho/\" EchoHandler {
+		}
+
+		location / NotFoundHandler {
+		}
+
+		location /proxystatus StatusHandler {
+
+		}
+
+		location \"/bitlynested\" ProxyRequestHandler {
+			dest \"www.bit.ly\";
+			port 80;
 		}
 	"
 
@@ -61,22 +101,45 @@ start() {
 		exit 1
 	fi
 
+	# Check if port is free
+	PROXY_PORT_FREE=$(
+		nc -z localhost $PROXY_PORT
+		echo $?
+	)
+	if [ $PROXY_PORT_FREE -ne 1 ]; then
+		warn "proxy port $PROXY_PORT not free, stopping test"
+		exit 1
+	fi
+
 	CONFIG_PATH="${DIR}/default.conf"
 	echo "$CONFIG" >"$CONFIG_PATH"
 
 	"${WEBSERVER}" "${CONFIG_PATH}" &
 	PID="$!"
 	sleep 1
+
+	PROXY_CONFIG_PATH="${DIR}/proxy.conf"
+	echo "$PROXY_CONFIG" >"$PROXY_CONFIG_PATH"
+
+	"${WEBSERVER}" "${PROXY_CONFIG_PATH}" &
+	PROXY_PID="$!"
+	sleep 1
+
+	ps
 }
 
 stop() {
 	kill ${PID}
 	KILL_RET=$?
 
-	rm "$CONFIG_PATH"
+	kill ${PROXY_PID}
+	PROXY_KILL_RET=$?
 
-	if [ $KILL_RET -ne 0 ]; then
-		warn "could not kill webserver properly, kill returned '$KILL_RET'"
+	rm "$CONFIG_PATH"
+	rm "$PROXY_CONFIG_PATH"
+
+	if [ $KILL_RET -ne 0 ] || [ $PROXY_KILL_RET -ne 0 ]; then
+		warn "could not kill webservers properly, kill returned '$KILL_RET' and proxy kill returned '$PROXY_KILL"
 		exit 1
 	fi
 }
@@ -98,7 +161,7 @@ test_header() {
 	rm "$HEADER"
 
 	if [ $GREP_RET -ne 0 ]; then
-		warn "server response header was not expected for $URL" 
+		warn "server response header was not expected for $URL"
 		echo "Response obtained from server:"
 		echo "$HEADER_CONTENT"
 		echo "Expected to see:"
@@ -127,7 +190,7 @@ test_body() {
 	rm "$HEADER"
 
 	if [ $GREP_RET -ne 0 ]; then
-		warn "server response body was not expected for $URL" 
+		warn "server response body was not expected for $URL"
 		echo "Response obtained from server:"
 		echo "$OUTPUT"
 		echo "Expected to see:"
@@ -190,13 +253,27 @@ test_header "/static/test.html" "text/html"
 test_header "/static/testing-zip.zip" "application/zip"
 test_header "/status" "text/html"
 
+test_header "/proxy/proxystatic/samueli.jpg" "200 OK"
+test_header "/proxy/proxystatic/samueli.jpg" "Content-Type: image/jpeg"
+test_header "/proxy/" "404 Not Found"
+test_header "/proxy/not/in/proxyconfig" "404 Not Found"
+test_header "/proxy/proxyecho" "200 OK"
+test_header "/proxy/proxystatus" "text/html"
+test_header "/bitlyproxy/3hlhXsh" "301 Moved Permanently" # Arbitrary bitly link that never expires
+test_header "/proxy/bitlynested/3hlhXsh" "301 Moved Permanently"
+test_header "/bitlyproxy/3hlhXsh" "Location: http://bit.ly/3hlhXsh"
 
 test_body "/echo" "GET"
 test_body "/static/test.html" "<html"
 test_body "/status" "<html"
 test_body "/status" "<td>/static/missing</td><td>404"
 
+test_body "/proxy/proxyecho" "GET"
+test_body "/proxy/proxystatic/test.html" "<html"
+test_body "/proxy/proxystatus" "<html"
 
 test_body_content "/static/samueli.jpg" "../data/static_data/samueli.jpg"
+
+test_body_content "/proxy/proxystatic/samueli.jpg" "../data/static_data/samueli.jpg"
 
 stop
