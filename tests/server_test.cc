@@ -24,7 +24,7 @@ TEST(ServerTest, ServeForever) {
 	std::istringstream configStream;
 
 	configStream.str(
-	    "port 8080; # The port my server listens on\n"
+	    "port 8000; # The port my server listens on\n"
 	    "location /echo EchoHandler {}\n"
 	    "location /print EchoHandler {}\n"
 	    "location /static StaticHandler {\n"
@@ -33,7 +33,7 @@ TEST(ServerTest, ServeForever) {
 	    "location / NotFoundHandler{} \n"
 	    "location /invalid ErrorButServerShouldntCrash{}\n");
 	p.Parse(&configStream, &config);
-	ASSERT_EQ(config.get_port(), 8080);
+	ASSERT_EQ(config.get_port(), 8000);
 	std::thread server_thread(server_runner, &io_context, config, &done);
 
 	// Wait for server to start-up
