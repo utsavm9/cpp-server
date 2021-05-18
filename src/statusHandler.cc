@@ -42,19 +42,20 @@ http::response<http::string_body> StatusHandler::handle_request(const http::requ
 	    "<title>Koko Status Report</title>"
 	    "</head>"
 	    "<body>"
-	    "<h1>Status Report</h1>"
+	    "<h1>Koko Server Status Report</h1>"
+	    "Members: Bryan Nguyen, Hyounjun Chang, Tanmaya Hada, Utsav Munendra<br>"
 	    "<h3>Total Requests Received: " +
 	    num_requests +
 	    "</h3>"
-        "</br>"
-        "<h3>Received Requests</h3>"
+	    "</br>"
+	    "<h3>Received Requests</h3>"
 	    "<table>"
 	    "<tr><th>Location</th><th>Response Code</th></tr>" +
 	    url_to_res_code_table +
 	    "</table>"
-        "</br>"
-        "<h2>Registered Handlers</h2>"
-        "<table>"
+	    "</br>"
+	    "<h2>Registered Handlers</h2>"
+	    "<table>"
 	    "<tr><th>URL Prefix</th><th>Handler Type</th></tr>" +
 	    url_prefix_to_handler_table +
 	    "</table>"
