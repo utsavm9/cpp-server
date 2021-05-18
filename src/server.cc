@@ -18,6 +18,7 @@
 #include "notFoundHandler.h"
 #include "proxyRequestHandler.h"
 #include "session.h"
+#include "sleepEchoHandler.h"
 #include "statusHandler.h"
 
 using boost::asio::ip::tcp;
@@ -57,6 +58,11 @@ RequestHandler* server::create_handler(std::string url_prefix, std::string handl
 	else if (handler_name == "StatusHandler") {
 		INFO << "server: registering status handler for url prefix: " << url_prefix;
 		return new StatusHandler(url_prefix, subconfig);
+	}
+
+	else if (handler_name == "SleepEchoHandler") {
+		INFO << "server: registering status handler for url prefix: " << url_prefix;
+		return new SleepEchoHandler(url_prefix, subconfig);
 	}
 
 	else if (handler_name == "HealthHandler") {

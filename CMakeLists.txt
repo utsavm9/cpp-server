@@ -39,7 +39,8 @@ add_library(config src/config.cc)
 add_library(session src/session.cc)
 add_library(server src/server.cc)
 add_library(logger src/logger.cc)
-add_library(handler src/handler.cc src/echoHandler.cc src/fileHandler.cc src/notFoundHandler.cc src/proxyRequestHandler.cc src/statusHandler.cc src/healthHandler.cc)
+add_library(handler src/handler.cc src/echoHandler.cc src/fileHandler.cc src/notFoundHandler.cc src/proxyRequestHandler.cc src/statusHandler.cc 
+    src/healthHandler.cc src/sleepEchoHandler.cc)
 
 # Generate the server executable
 add_executable(webserver src/main.cc)
@@ -50,7 +51,7 @@ target_link_libraries(session parser)
 # Generate the test executable
 add_executable(unit_tests tests/parser_test.cc tests/config_test.cc tests/server_test.cc tests/logger_test.cc tests/session_test.cc
 	tests/handler_tests/handler_test.cc tests/handler_tests/echo_test.cc tests/handler_tests/file_test.cc tests/handler_tests/health_test.cc
-	tests/handler_tests/notFound_test.cc tests/handler_tests/proxy_test.cc tests/handler_tests/status_test.cc)
+	tests/handler_tests/notFound_test.cc tests/handler_tests/proxy_test.cc tests/handler_tests/status_test.cc tests/handler_tests/sleepEcho_test.cc)
 target_link_libraries(unit_tests 
 	parser config server logger 
 	gtest_main 
