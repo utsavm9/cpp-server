@@ -70,4 +70,12 @@ TEST(Session, ConstructResponse) {
 		s->construct_response(req, res);
 		EXPECT_EQ(res.result(), http::status::not_found);
 	}
+
+	{
+		// Test that characters after the first "?" that is after the last "/" are ignored in URL
+		http::request<http::string_body> req{http::verb::get, "/foo?fbclid=IwAR0-seXzN7KsoM2y0-LfD9H12NsKdqorpTjB1C4-0myBcO355Ax_wFTSouQ", 11};
+		http::response<http::string_body> res;
+		s->construct_response(req, res);
+		EXPECT_EQ(res.result(), http::status::ok);
+	}
 }

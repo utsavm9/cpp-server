@@ -128,8 +128,18 @@ void session::finished_write(bool close, beast::error_code err, std::size_t byte
 void session::construct_response(http::request<http::string_body>& req, http::response<http::string_body>& res) {
 	INFO << "session: received " << req.method() << " request, user agent '" << req[http::field::user_agent] << "'";
 
-	// add / to make sure the directory name is the same
 	std::string target = std::string(req.target());
+
+	// ignore characters after the first "?" that is after the last "/" in URL
+	size_t last_slash_index = target.rfind("/");
+	if (last_slash_index != std::string::npos) {
+		size_t first_qmark_index = target.substr(last_slash_index).find("?");
+		if (first_qmark_index != std::string::npos) {
+			target.erase(first_qmark_index);
+		}
+	}
+
+	// add / to make sure the directory name is the same
 	target = target + "/";
 
 	size_t longest_prefix_match = 0;
