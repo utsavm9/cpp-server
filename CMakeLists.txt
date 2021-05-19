@@ -48,7 +48,9 @@ target_link_libraries(server session handler)
 target_link_libraries(session parser)
 
 # Generate the test executable
-add_executable(unit_tests tests/parser_test.cc tests/config_test.cc tests/server_test.cc tests/logger_test.cc tests/handler_test.cc tests/session_test.cc)
+add_executable(unit_tests tests/parser_test.cc tests/config_test.cc tests/server_test.cc tests/logger_test.cc tests/session_test.cc
+	tests/handler_tests/handler_test.cc tests/handler_tests/echo_test.cc tests/handler_tests/file_test.cc tests/handler_tests/health_test.cc
+	tests/handler_tests/notFound_test.cc tests/handler_tests/proxy_test.cc tests/handler_tests/status_test.cc)
 target_link_libraries(unit_tests 
 	parser config server logger 
 	gtest_main 
