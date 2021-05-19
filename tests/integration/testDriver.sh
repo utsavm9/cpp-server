@@ -54,7 +54,9 @@ start() {
 		}
 
 		location /status StatusHandler {
+		}
 
+		location /health HealthHandler {
 		}
 
 		location /proxy ProxyRequestHandler {
@@ -247,11 +249,13 @@ test_header "/static/test.html" "200 OK"
 test_header "/static/testing-zip.zip" "200 OK"
 test_header "/static/../static/test.html" "200 OK"
 test_header "/status" "200 OK"
+test_header "/health" "200 OK"
 
 test_header "/echo" "text/plain"
 test_header "/static/test.html" "text/html"
 test_header "/static/testing-zip.zip" "application/zip"
 test_header "/status" "text/html"
+test_header "/health" "text/plain"
 
 test_header "/proxy/proxystatic/samueli.jpg" "200 OK"
 test_header "/proxy/proxystatic/samueli.jpg" "Content-Type: image/jpeg"
@@ -267,6 +271,7 @@ test_body "/echo" "GET"
 test_body "/static/test.html" "<html"
 test_body "/status" "<html"
 test_body "/status" "<td>/static/missing</td><td>404"
+test_body "/health" "OK"
 
 test_body "/proxy/proxyecho" "GET"
 test_body "/proxy/proxystatic/test.html" "<html"

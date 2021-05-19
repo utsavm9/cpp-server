@@ -13,6 +13,7 @@
 #include "echoHandler.h"
 #include "fileHandler.h"
 #include "handler.h"
+#include "healthHandler.h"
 #include "logger.h"
 #include "notFoundHandler.h"
 #include "proxyRequestHandler.h"
@@ -56,6 +57,11 @@ RequestHandler* server::create_handler(std::string url_prefix, std::string handl
 	else if (handler_name == "StatusHandler") {
 		INFO << "server: registering status handler for url prefix: " << url_prefix;
 		return new StatusHandler(url_prefix, subconfig);
+	}
+
+	else if (handler_name == "HealthHandler") {
+		INFO << "server: registering health handler for url prefix: " << url_prefix;
+		return new HealthHandler(url_prefix, subconfig);
 	}
 	ERROR << "server: unexpected handler name parsed from config: " << handler_name;
 	return nullptr;

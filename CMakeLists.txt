@@ -39,7 +39,7 @@ add_library(config src/config.cc)
 add_library(session src/session.cc)
 add_library(server src/server.cc)
 add_library(logger src/logger.cc)
-add_library(handler src/handler.cc src/echoHandler.cc src/fileHandler.cc src/notFoundHandler.cc src/proxyRequestHandler.cc src/statusHandler.cc)
+add_library(handler src/handler.cc src/echoHandler.cc src/fileHandler.cc src/notFoundHandler.cc src/proxyRequestHandler.cc src/statusHandler.cc src/healthHandler.cc)
 
 # Generate the server executable
 add_executable(webserver src/main.cc)

@@ -1,13 +1,13 @@
 #include "handler.h"
 
-#include <boost/filesystem.hpp>
 #include <boost/beast/http.hpp>
-
+#include <boost/filesystem.hpp>
 #include <unordered_map>
 
 #include "echoHandler.h"
 #include "fileHandler.h"
 #include "gtest/gtest.h"
+#include "healthHandler.h"
 #include "logger.h"
 #include "notFoundHandler.h"
 #include "parser.h"
@@ -387,4 +387,22 @@ TEST(StatusHandlerTest, UnitTests) {
 
 	StatusHandler::url_to_res_code.clear();
 	server::urlToHandlerName.clear();
+}
+
+TEST(HealthHandlerTest, UnitTests) {
+	NginxConfig config;
+	NginxConfigParser p;
+	std::istringstream configStream;
+
+	configStream.str("");
+	p.Parse(&configStream, &config);
+	HealthHandler test_handler("/", config);
+
+	http::request<http::string_body> req;
+	req.method(http::verb::get);
+	req.version(11);
+	req.target("/health");
+	std::string res = test_handler.to_string(test_handler.get_response(req));
+
+	EXPECT_NE(res.find("200 OK"), std::string::npos);
 }
