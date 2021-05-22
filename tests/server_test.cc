@@ -221,9 +221,9 @@ TEST(ServerTest, MultiThreadTest) {
 	t2.join();
 
 	// check sleep response time > sleep time
-	EXPECT_TRUE(sleep_res_time_in_ms > 3000);
+	EXPECT_GE(sleep_res_time_in_ms, 3000);
 	// If server is not multi-threaded, echo_res is blocked for ~2000ms, failing this
-	EXPECT_TRUE(echo_res_time_in_ms < 500);
+	EXPECT_LE(echo_res_time_in_ms, 3000);
 
 	// Check response is 200 OK
 	std::string s;
