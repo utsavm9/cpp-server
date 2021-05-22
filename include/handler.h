@@ -5,11 +5,17 @@
 #include <string>
 #include <vector>
 
+#include "logger.h"
+
 namespace http = boost::beast::http;
 
 class RequestHandler {
    public:
 	virtual ~RequestHandler() {}
+
+	// Gets name of handler
+	std::string get_name();
+
 	// Wraps handle_request and records url to response code pair
 	http::response<http::string_body> get_response(const http::request<http::string_body>& request);
 
@@ -31,4 +37,6 @@ class RequestHandler {
    protected:
 	// Returns a response for the given request
 	virtual http::response<http::string_body> handle_request(const http::request<http::string_body>& request) = 0;
+
+	std::string name;
 };

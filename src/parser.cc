@@ -302,7 +302,7 @@ bool NginxConfigParser::Parse(const char *file_name, NginxConfig *config) {
 }
 
 int NginxConfigParser::parse_args(int argc, const char *argv[], NginxConfig *config) {
-	INFO << "starting to parse program arguments";
+	TRACE << "starting to parse program arguments";
 
 	if (argc != 2) {
 		FATAL << "missing config file, usage: webserver <config_file_path>";
@@ -319,7 +319,7 @@ int NginxConfigParser::parse_args(int argc, const char *argv[], NginxConfig *con
 	if (!config_parser.Parse(argv[1], config)) {
 		FATAL << "failed to parse config";
 	}
-	INFO << "parsed the raw config";
+	TRACE << "parsed the raw config";
 
 	return 0;
 }

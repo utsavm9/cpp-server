@@ -31,42 +31,42 @@ server::server(boost::asio::io_context& io_context, NginxConfig c)
       port_(config_.get_port()),
       acceptor_(io_context_, tcp::endpoint(tcp::v4(), port_)),
       urlToHandler_(create_all_handlers(config_)) {
-	INFO << "server: constructed and listening on port " << port_;
+	TRACE << "server: constructed and listening on port " << port_;
 }
 
 RequestHandler* server::create_handler(std::string url_prefix, std::string handler_name, NginxConfig subconfig) {
 	if (handler_name == "EchoHandler") {
-		INFO << "server: registering echo handler for url prefix: " << url_prefix;
+		TRACE << "server: registering echo handler for url prefix: " << url_prefix;
 		return new EchoHandler(url_prefix, subconfig);
 	}
 
 	else if (handler_name == "StaticHandler") {
-		INFO << "server: registering static handler for url prefix: " << url_prefix;
+		TRACE << "server: registering static handler for url prefix: " << url_prefix;
 		return new FileHandler(url_prefix, subconfig);
 	}
 
 	else if (handler_name == "NotFoundHandler") {
-		INFO << "server: registering not found handler for url prefix: " << url_prefix;
+		TRACE << "server: registering not found handler for url prefix: " << url_prefix;
 		return new NotFoundHandler(url_prefix, subconfig);
 	}
 
 	else if (handler_name == "ProxyRequestHandler") {
-		INFO << "server: registering proxy request handler for url prefix: " << url_prefix;
+		TRACE << "server: registering proxy request handler for url prefix: " << url_prefix;
 		return new ProxyRequestHandler(url_prefix, subconfig);
 	}
 
 	else if (handler_name == "StatusHandler") {
-		INFO << "server: registering status handler for url prefix: " << url_prefix;
+		TRACE << "server: registering status handler for url prefix: " << url_prefix;
 		return new StatusHandler(url_prefix, subconfig);
 	}
 
 	else if (handler_name == "SleepEchoHandler") {
-		INFO << "server: registering status handler for url prefix: " << url_prefix;
+		TRACE << "server: registering status handler for url prefix: " << url_prefix;
 		return new SleepEchoHandler(url_prefix, subconfig);
 	}
 
 	else if (handler_name == "HealthHandler") {
-		INFO << "server: registering health handler for url prefix: " << url_prefix;
+		TRACE << "server: registering health handler for url prefix: " << url_prefix;
 		return new HealthHandler(url_prefix, subconfig);
 	}
 	ERROR << "server: unexpected handler name parsed from config: " << handler_name;
@@ -104,7 +104,7 @@ std::vector<std::pair<std::string, RequestHandler*>> server::create_all_handlers
 }
 
 void server::start_accept() {
-	INFO << "server: preparing to accept a connection";
+	TRACE << "server: preparing to accept a connection";
 
 	// A strand is like a thread+mutex combination
 	// This makes sure that while multiple write operation on DIFFERENT sockets (sessions?)
@@ -136,7 +136,7 @@ void server::handle_accept(error_code err, tcp::socket socket) {
 		return;
 	}
 
-	INFO << "server: just accepted a connection, creating session for it";
+	TRACE << "server: just accepted a connection, creating session for it";
 
 	// Create a session as a shared pointer.
 	// Cannot directly assign the object to a variable because then the session
@@ -167,12 +167,12 @@ void server::register_server_sigint() {
 }
 
 void server::server_sigint(__attribute__((unused)) int s) {
-	INFO << "server: received SIGINT, ending execution";
+	TRACE << "server: received SIGINT, ending execution";
 	exit(130);
 }
 
 void server::serve_forever(boost::asio::io_context* io_context, NginxConfig& config) {
-	INFO << "server: setting up to serve forever";
+	TRACE << "server: setting up to serve forever";
 	server::register_server_sigint();
 
 	try {

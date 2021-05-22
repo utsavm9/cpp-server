@@ -11,7 +11,7 @@ TEST(LogTests, LogsProperly) {
 	init_logger();
 	std::string log_msg = "Start of first log";
 	const int log_msg_size = log_msg.size();
-	INFO << log_msg;
+	TRACE << log_msg;
 	time_t t = time(NULL);
 	tm* timePtr = localtime(&t);
 	std::string month;
@@ -32,7 +32,7 @@ TEST(LogTests, LogsProperly) {
 	// read content of log file and put it into a string
 	std::string log_file_content((std::istreambuf_iterator<char>(ifs)),
 	                             (std::istreambuf_iterator<char>()));
-	const int log_file_msg_starting_pos = 72;
+	const int log_file_msg_starting_pos = 73;
 	int log_works = log_file_content.compare(log_file_msg_starting_pos, log_msg_size, log_msg);
 	system("/bin/bash ./logger_test_scripts/delete_logs.sh");
 	EXPECT_EQ(log_works, 0);

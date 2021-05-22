@@ -63,3 +63,7 @@ http::response<http::string_body> RequestHandler::get_response(const http::reque
 }
 
 std::vector<std::pair<std::string, std::string>> RequestHandler::url_to_res_code;
+
+std::string RequestHandler::get_name() {
+	return name;
+}

@@ -10,6 +10,7 @@ namespace http = boost::beast::http;
 
 EchoHandler::EchoHandler(const std::string& p, __attribute__((unused)) const NginxConfig& config)
     : url_prefix(p) {
+	name = "Echo";
 }
 
 http::response<http::string_body> EchoHandler::handle_request(const http::request<http::string_body>& request) {

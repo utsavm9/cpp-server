@@ -10,9 +10,12 @@
 namespace http = boost::beast::http;
 
 StatusHandler::StatusHandler(__attribute__((unused)) const std::string& url_prefix, __attribute__((unused)) const NginxConfig& config) {
+	name = "Status";
 }
 
 http::response<http::string_body> StatusHandler::handle_request(const http::request<http::string_body>& request) {
+	INFO << "metrics: handler handling request: Status";
+
 	auto url_to_res_code = RequestHandler::url_to_res_code;
 	auto url_to_handler = server::urlToHandlerName;
 

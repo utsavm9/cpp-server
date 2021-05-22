@@ -10,6 +10,7 @@
 namespace http = boost::beast::http;
 
 HealthHandler::HealthHandler(__attribute__((unused)) const std::string& url_prefix, __attribute__((unused)) const NginxConfig& config) {
+	name = "Health";
 }
 
 http::response<http::string_body> HealthHandler::handle_request(__attribute__((unused)) const http::request<http::string_body>& request) {

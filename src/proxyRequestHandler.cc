@@ -15,6 +15,8 @@ using tcp = net::ip::tcp;
 
 ProxyRequestHandler::ProxyRequestHandler(const std::string &p, const NginxConfig &config)
     : url_prefix(p) {
+	name = "ProxyRequest";
+
 	if (url_prefix.size() > 0 && url_prefix[url_prefix.size() - 1] == '/') {
 		url_prefix.erase(url_prefix.size() - 1);
 	}
@@ -31,8 +33,8 @@ ProxyRequestHandler::ProxyRequestHandler(const std::string &p, const NginxConfig
 		if (proxy_dest.empty() || m_port.empty()) {
 			throw std::runtime_error("Missing required config field");
 		}
-		INFO << "ProxyRequestHandler for " << url_prefix << " -> Proxy destination: " << proxy_dest;
-		INFO << "ProxyRequestHandler for " << url_prefix << " -> Port: " << m_port;
+		TRACE << "ProxyRequestHandler for " << url_prefix << " -> Proxy destination: " << proxy_dest;
+		TRACE << "ProxyRequestHandler for " << url_prefix << " -> Port: " << m_port;
 		invalid_config = false;
 	} catch (std::exception &e) {
 		FATAL << "exception occurred : " << e.what();
@@ -46,17 +48,17 @@ http::response<http::string_body> ProxyRequestHandler::req_synchronous(const htt
 	beast::tcp_stream stream(ioc);
 	tcp::resolver::query query(proxy_dest, m_port);
 	auto const results = resolver.resolve(query);
-	INFO << "ProxyRequestHandler attempting to connect to host "
-	     << proxy_dest
-	     << " on port "
-	     << m_port;
+	TRACE << "ProxyRequestHandler attempting to connect to host "
+	      << proxy_dest
+	      << " on port "
+	      << m_port;
 	stream.connect(results);
-	INFO << "ProxyRequestHandler successfully connected to host "
-	     << proxy_dest
-	     << " on "
-	     << stream.socket().remote_endpoint().address().to_string()
-	     << ":"
-	     << stream.socket().remote_endpoint().port();
+	TRACE << "ProxyRequestHandler successfully connected to host "
+	      << proxy_dest
+	      << " on "
+	      << stream.socket().remote_endpoint().address().to_string()
+	      << ":"
+	      << stream.socket().remote_endpoint().port();
 	http::write(stream, request);
 	beast::flat_buffer buffer;
 	http::response<http::string_body> res;

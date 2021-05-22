@@ -72,7 +72,7 @@ To add your own Handler follow these steps:
 ```
 // In server::create_handler()
    else if (handler_name == "NotFoundHandler") {
-       INFO << "registering not found handler for url prefix: " << url_prefix;
+       TRACE << "registering not found handler for url prefix: " << url_prefix;
        return new NotFoundService(url_prefix, subconfig);
    }
 ```

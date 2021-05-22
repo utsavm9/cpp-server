@@ -43,14 +43,14 @@ void send_req_localhost(http::request<http::string_body>* request, http::respons
 	http::read(stream, buffer, res, ec);
 	stream.socket().shutdown(tcp::socket::shutdown_both, ec);
 	if (ec && ec != beast::errc::not_connected) {
-		INFO << "Failed to connect to host";
+		TRACE << "Failed to connect to host";
 		throw beast::system_error{ec};
 	}
 	res.prepare_payload();
 
 	auto t_end = std::chrono::high_resolution_clock::now();
 	*time_taken_in_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
-	INFO << "Time taken for this request: " << *time_taken_in_ms << " ms\n";
+	TRACE << "Time taken for this request: " << *time_taken_in_ms << " ms\n";
 
 	*response = res;
 }

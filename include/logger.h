@@ -35,3 +35,4 @@ void init_logger();
 #define ERROR BOOST_LOG_SEV(slg::get(), error)
 #define WARNING BOOST_LOG_SEV(slg::get(), warning)
 #define INFO BOOST_LOG_SEV(slg::get(), info)
+#define TRACE BOOST_LOG_SEV(slg::get(), trace)

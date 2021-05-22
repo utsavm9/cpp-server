@@ -12,6 +12,8 @@ namespace fs = boost::filesystem;
 
 FileHandler::FileHandler(const std::string& prefix, const NginxConfig& config)
     : url_prefix(prefix) {
+	name = "File";
+
 	// Ignore tailing slashes while registering urls
 	if (url_prefix.size() > 0 && url_prefix[url_prefix.size() - 1] == '/') {
 		url_prefix.erase(url_prefix.size() - 1);
@@ -38,21 +40,21 @@ http::response<http::string_body> FileHandler::handle_request(const http::reques
 	if (target.size() > 0 && target[target.size() - 1] == '/') {
 		target.erase(target.size() - 1);
 	}
-	INFO << "target is: " << target;
+	TRACE << "target is: " << target;
 
 	// Check that linux_dir exists
 	if (!fs::exists(linux_dir)) {
-		INFO << "file handler serving on non-existant linux path: " << linux_dir;
+		TRACE << "file handler serving on non-existant linux path: " << linux_dir;
 		return not_found_error();
 	}
 
 	if (!fs::is_directory(linux_dir)) {
 		// If linux_dir is a file actually, ignore the rest of the url
-		INFO << "file handler registered with a file directly: " << linux_dir;
+		TRACE << "file handler registered with a file directly: " << linux_dir;
 		linux_path = linux_dir;
 	} else {
 		// Construct the file path from the url
-		INFO << "file handler registered with a directory: " << linux_dir;
+		TRACE << "file handler registered with a directory: " << linux_dir;
 
 		fs::path filepath(target.substr(url_prefix.size()));
 		linux_path = linux_dir / filepath;

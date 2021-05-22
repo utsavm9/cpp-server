@@ -12,6 +12,7 @@ namespace http = boost::beast::http;
 
 SleepEchoHandler::SleepEchoHandler(const std::string& p, __attribute__((unused)) const NginxConfig& config)
     : EchoHandler(p, config) {
+	name = "SleepEcho";
 }
 
 http::response<http::string_body> SleepEchoHandler::handle_request(const http::request<http::string_body>& request) {

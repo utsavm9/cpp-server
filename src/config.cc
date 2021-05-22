@@ -42,7 +42,7 @@ int NginxConfig::get_port() {
 			} catch (std::out_of_range const &) {
 				ERROR << "port number too large";
 			} catch (std::invalid_argument const &) {
-				INFO << "malformed port Number ";
+				TRACE << "malformed port Number ";
 			}
 		}
 		return optional<int>{};
@@ -52,7 +52,7 @@ int NginxConfig::get_port() {
 	for (const auto &statement : statements_) {
 		optional<int> port = get_port_from_statement(statement);
 		if (port.is_initialized()) {
-			INFO << "extracted port number from config, setting port " << port.value();
+			TRACE << "extracted port number from config, setting port " << port.value();
 			return port.value();
 		}
 	}
@@ -65,7 +65,7 @@ int NginxConfig::get_port() {
 			for (const auto &substatement : statement->child_block_->statements_) {
 				optional<int> port = get_port_from_statement(substatement);
 				if (port.is_initialized()) {
-					INFO << "extracted port number from config server block, setting port " << port.value();
+					TRACE << "extracted port number from config server block, setting port " << port.value();
 					return port.value();
 				}
 			}
@@ -73,6 +73,6 @@ int NginxConfig::get_port() {
 	}
 
 	// default port number
-	INFO << "failed to find a port number from config, using 80 by default";
+	TRACE << "failed to find a port number from config, using 80 by default";
 	return 80;
 }
