@@ -80,23 +80,28 @@ void session::on_read(beast::error_code err, std::size_t bytes_transferred) {
 		return;
 	}
 
+	bool close = true;
+
 	if (err) {
+		close = true;
+		res_ = RequestHandler::bad_request();
 		ERROR << "session: error occurred while reading from the stream: " << err.message();
-		return;
+	} else {
+				INFO << "session: successfully read a request from the stream of size (bytes): " << bytes_transferred;
+
+		// generate the response from the request stored as a data member in this session object
+		// and store the response in another data member.
+		construct_response(req_, res_);
+
+		close = res_.need_eof();
 	}
-
-	INFO << "session: successfully read a request from the stream of size (bytes): " << bytes_transferred;
-
-	// generate the response from the request stored as a data member in this session object
-	// and store the response in another data member.
-	construct_response(req_, res_);
 
 	// this pointer of this object, wrapped in a shared_ptr
 	std::shared_ptr<session> this_pointer = shared_from_this();
 
 	// Wrap the intent to call this->finished_write() or finished_write(this)
 	// Create a handler object whose job is to call the function we passed it.
-	auto finished_write_handler = beast::bind_front_handler(&session::finished_write, this_pointer, res_.need_eof());
+	auto finished_write_handler = beast::bind_front_handler(&session::finished_write, this_pointer, close);
 
 	// Asynchronously write the response back to the stream so that it it sent
 	// and then call finished_write().

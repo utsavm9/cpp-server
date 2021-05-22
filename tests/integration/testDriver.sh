@@ -256,6 +256,40 @@ test_multithread() {
 	rm "$OUTPUT_ECHO"
 
 	if [ $num_errors -ne 0 ]; then
+		warn "server response was not expected"
+		echo "Response obtained from server:"
+		echo "$OUTPUT_CONTENT"
+		echo "Expected to see:"
+		echo "$SEARCH"
+
+		stop
+		exit 1
+	fi
+}
+	
+test_bad_req() {
+	local OUTPUT="file.txt"
+	local HEADER="$DIR/header"
+	local REQUEST="$1"
+	local SEARCH="$2"
+	
+	printf "$REQUEST" | nc localhost 8081 -W 1 > file.txt
+
+	OUTPUT_CONTENT=$(cat file.txt)
+	grep "$SEARCH" file.txt
+	GREP_RET=$?
+	
+
+	if [ $GREP_RET -ne 0 ]; then
+		warn "server response was not expected"
+		echo "Response obtained from server:"
+		echo "$OUTPUT_CONTENT"
+		echo "Expected to see:"
+		echo "$SEARCH"
+		echo "For Request:"
+		echo "$REQUEST"
+
+		stop
 		exit 1
 	fi
 }
@@ -310,6 +344,9 @@ test_body_content "/static/samueli.jpg" "../data/static_data/samueli.jpg"
 
 test_body_content "/proxy/proxystatic/samueli.jpg" "../data/static_data/samueli.jpg"
 
+test_bad_req "GET /in HTTP/1.1\r\n\n\n" "400 Bad Request"
+
 test_multithread
+
 
 stop
