@@ -21,38 +21,22 @@ void server_runner(boost::asio::io_context* io_context, NginxConfig config, bool
 	*done = true;
 }
 
-void send_req_localhost(http::request<http::string_body>* request, http::response<http::string_body>* response, unsigned int* time_taken_in_ms, std::string port) {
-	net::io_context ioc;
-	tcp::resolver resolver(ioc);
-	beast::tcp_stream stream(ioc);
-	http::request<http::string_body> req;
-	http::response<http::string_body> res;
-
-	req = *request;
-
-	tcp::resolver::query query("localhost", port);
-	auto const results = resolver.resolve(query);
-	stream.connect(results);
-
-	// time the response time
-	auto t_start = std::chrono::high_resolution_clock::now();
-	http::write(stream, req);
+void response_read_worker(beast::tcp_stream* stream, http::response<http::string_body>* response, bool* done) {
 	beast::flat_buffer buffer;
-
+	http::response<http::string_body> res;
 	beast::error_code ec;
-	http::read(stream, buffer, res, ec);
-	stream.socket().shutdown(tcp::socket::shutdown_both, ec);
+
+	http::read(*stream, buffer, res, ec);
+
+	stream->socket().shutdown(tcp::socket::shutdown_both, ec);
 	if (ec && ec != beast::errc::not_connected) {
-		TRACE << "Failed to connect to host";
+		INFO << "Failed to connect to host";
 		throw beast::system_error{ec};
 	}
 	res.prepare_payload();
 
-	auto t_end = std::chrono::high_resolution_clock::now();
-	*time_taken_in_ms = std::chrono::duration<double, std::milli>(t_end - t_start).count();
-	TRACE << "Time taken for this request: " << *time_taken_in_ms << " ms\n";
-
 	*response = res;
+	*done = true;
 }
 
 TEST(ServerTest, ServeForever) {
@@ -204,26 +188,46 @@ TEST(ServerTest, MultiThreadTest) {
 	echo_req.target("/echo");
 	echo_req.version(11);
 
+	net::io_context sleep_ioc;
+	tcp::resolver sleep_resolver(sleep_ioc);
+	beast::tcp_stream sleep_stream(sleep_ioc);
+
+	tcp::resolver::query query("localhost", "9999");
+	auto results = sleep_resolver.resolve(query);
+	sleep_stream.connect(results);
+
+	http::write(sleep_stream, sleep_req);
+
+	net::io_context echo_ioc;
+	tcp::resolver echo_resolver(echo_ioc);
+	beast::tcp_stream echo_stream(echo_ioc);
+
+	results = echo_resolver.resolve(query);
+	echo_stream.connect(results);
+
+	http::write(echo_stream, echo_req);
+
 	// Store response and time taken
+	bool done_t1;
+	bool done_t2;
 	http::response<http::string_body> sleep_res;
-	unsigned int sleep_res_time_in_ms;
 	http::response<http::string_body> echo_res;
-	unsigned int echo_res_time_in_ms;
 
 	// Send sleep_req first, then echo_req
-	std::thread t1(send_req_localhost, &sleep_req, &sleep_res, &sleep_res_time_in_ms, "9999");
-	wait_time = std::chrono::seconds(1);
-	std::this_thread::sleep_for(wait_time);
-	std::thread t2(send_req_localhost, &echo_req, &echo_res, &echo_res_time_in_ms, "9999");
+	std::thread t1(response_read_worker, &sleep_stream, &sleep_res, &done_t1);
+	std::thread t2(response_read_worker, &echo_stream, &echo_res, &done_t2);
+
+	// ensure echo is done before sleep_echo
+	while (!(done_t1 || done_t2)) {
+		continue;
+	}
+
+	EXPECT_TRUE(done_t2);
+	EXPECT_FALSE(done_t1);
 
 	// Join the threads
 	t1.join();
 	t2.join();
-
-	// check sleep response time > sleep time
-	EXPECT_GE(sleep_res_time_in_ms, 3000);
-	// If server is not multi-threaded, echo_res is blocked for ~2000ms, failing this
-	EXPECT_LE(echo_res_time_in_ms, 3000);
 
 	// Check response is 200 OK
 	std::string s;
@@ -232,10 +236,12 @@ TEST(ServerTest, MultiThreadTest) {
 	res_str << echo_res;
 	s = res_str.str();
 	EXPECT_NE(s.find("200 OK"), std::string::npos);
+	EXPECT_NE(s.find("echo"), std::string::npos);
 
 	res_str << sleep_res;
 	s = res_str.str();
 	EXPECT_NE(s.find("200 OK"), std::string::npos);
+	EXPECT_NE(s.find("sleep"), std::string::npos);
 
 	// Shut down everything, and wait for the server to stop
 	io_context.stop();

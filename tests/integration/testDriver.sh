@@ -233,39 +233,6 @@ test_body_content() {
 		exit 1
 	fi
 }
-
-test_multithread() {
-	local OUTPUT_SLEEP="$DIR/output1"
-	local OUTPUT_ECHO="$DIR/output2"
-
-	local num_errors=0
-
-	curl -s -o "$OUTPUT_SLEEP" localhost:"$PORT/sleep" &
-	sleep 0.5
-	curl -s -o "$OUTPUT_ECHO" localhost:"$PORT/echo" &
-
-	sleep 5
-
-	#compare filestamps
-	if [ $OUTPUT_SLEEP -ot $OUTPUT_ECHO ]; then
-		warn "SleepEcho response arrived before Echo response, check if server is multi-threaded"
-		((num_errors++))
-	fi
-
-	rm "$OUTPUT_SLEEP"
-	rm "$OUTPUT_ECHO"
-
-	if [ $num_errors -ne 0 ]; then
-		warn "server response was not expected"
-		echo "Response obtained from server:"
-		echo "$OUTPUT_CONTENT"
-		echo "Expected to see:"
-		echo "$SEARCH"
-
-		stop
-		exit 1
-	fi
-}
 	
 test_bad_req() {
 	local OUTPUT="file.txt"
@@ -345,8 +312,6 @@ test_body_content "/static/samueli.jpg" "../data/static_data/samueli.jpg"
 test_body_content "/proxy/proxystatic/samueli.jpg" "../data/static_data/samueli.jpg"
 
 test_bad_req "GET /in HTTP/1.1\r\n\n\n" "400 Bad Request"
-
-test_multithread
 
 
 stop
