@@ -94,40 +94,62 @@ TEST(ServerTest, SignalHandling) {
 TEST(ServerTest, HandlerCreation) {
 	{
 		RequestHandler* handler = nullptr;
-		NginxConfig sub_config;
+
 		NginxConfigParser p;
-		std::istringstream configStream;
+
 		http::request<http::string_body> stubReq;
+		{
+			NginxConfig sub_config;
+			std::istringstream configStream;
+			configStream.str("\n");
+			p.Parse(&configStream, &sub_config);
+			handler = server::create_handler("/echo", "EchoHandler", sub_config);
+			ASSERT_NO_THROW(handler->get_response(stubReq));
+		}
+		{
+			NginxConfig sub_config;
+			std::istringstream configStream;
+			stubReq.target("/static/test.html");
+			configStream.str("root ../data\n");
+			p.Parse(&configStream, &sub_config);
+			handler = server::create_handler("/static", "StaticHandler", sub_config);
+			ASSERT_NO_THROW(handler->get_response(stubReq));
+		}
+		{
+			NginxConfig sub_config;
+			std::istringstream configStream;
+			configStream.str("");
+			p.Parse(&configStream, &sub_config);
+			handler = server::create_handler("/", "NotFoundHandler", sub_config);
+			ASSERT_NO_THROW(handler->get_response(stubReq));
+		}
 
-		configStream.str("\n");
-		p.Parse(&configStream, &sub_config);
-		handler = server::create_handler("/echo", "EchoHandler", sub_config);
-		ASSERT_NO_THROW(handler->get_response(stubReq));
+		{
+			NginxConfig sub_config;
+			std::istringstream configStream;
+			configStream.str("dest www.washington.edu; port 80;");
+			p.Parse(&configStream, &sub_config);
+			handler = server::create_handler("/", "ProxyRequestHandler", sub_config);
+			ASSERT_NO_THROW(handler->get_response(stubReq));
+		}
 
-		configStream.str("root ../data\n");
-		p.Parse(&configStream, &sub_config);
-		handler = server::create_handler("/static", "StaticHandler", sub_config);
-		ASSERT_NO_THROW(handler->get_response(stubReq));
+		{
+			NginxConfig sub_config;
+			std::istringstream configStream;
+			configStream.str("");
+			p.Parse(&configStream, &sub_config);
+			handler = server::create_handler("/", "StatusHandler", sub_config);
+			ASSERT_NO_THROW(handler->get_response(stubReq));
+		}
 
-		configStream.str("");
-		p.Parse(&configStream, &sub_config);
-		handler = server::create_handler("/", "NotFoundHandler", sub_config);
-		ASSERT_NO_THROW(handler->get_response(stubReq));
-
-		configStream.str("dest www.washington.edu; port 80;");
-		p.Parse(&configStream, &sub_config);
-		handler = server::create_handler("/", "ProxyRequestHandler", sub_config);
-		ASSERT_NO_THROW(handler->get_response(stubReq));
-
-		configStream.str("");
-		p.Parse(&configStream, &sub_config);
-		handler = server::create_handler("/", "StatusHandler", sub_config);
-		ASSERT_NO_THROW(handler->get_response(stubReq));
-
-		configStream.str("");
-		p.Parse(&configStream, &sub_config);
-		handler = server::create_handler("/", "NotARealHandler", sub_config);
-		EXPECT_EQ(handler, nullptr);
+		{
+			NginxConfig sub_config;
+			std::istringstream configStream;
+			configStream.str("");
+			p.Parse(&configStream, &sub_config);
+			handler = server::create_handler("/", "NotARealHandler", sub_config);
+			EXPECT_EQ(handler, nullptr);
+		}
 	}
 
 	{

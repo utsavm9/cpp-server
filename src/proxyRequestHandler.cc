@@ -133,7 +133,3 @@ http::response<http::string_body> ProxyRequestHandler::handle_request(const http
 		return RequestHandler::internal_server_error();
 	}
 }
-
-std::string ProxyRequestHandler::get_url_prefix() {
-	return url_prefix;
-}
