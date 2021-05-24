@@ -14,7 +14,6 @@ StatusHandler::StatusHandler(__attribute__((unused)) const std::string& url_pref
 }
 
 http::response<http::string_body> StatusHandler::handle_request(const http::request<http::string_body>& request) {
-	INFO << "metrics: handler handling request: Status";
 
 	auto url_to_res_code = RequestHandler::url_to_res_code;
 	auto url_to_handler = server::urlToHandlerName;

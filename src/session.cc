@@ -79,6 +79,10 @@ void session::do_read() {
 void session::on_read(beast::error_code err, std::size_t bytes_transferred) {
 	// async_read also passed us the number of bytes read.
 	// It would have read all of the request and not some part of it.
+	if (err == beast::error::timeout) {
+		TRACE << "session: stream ended, timeout";
+		return;
+	}
 
 	if (err == http::error::end_of_stream) {
 		beast::error_code ec;

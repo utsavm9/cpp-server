@@ -30,7 +30,7 @@ void response_read_worker(beast::tcp_stream* stream, http::response<http::string
 
 	stream->socket().shutdown(tcp::socket::shutdown_both, ec);
 	if (ec && ec != beast::errc::not_connected) {
-		INFO << "Failed to connect to host";
+		TRACE << "Failed to connect to host";
 		throw beast::system_error{ec};
 	}
 	res.prepare_payload();
