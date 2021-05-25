@@ -2,9 +2,18 @@
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/date_time/local_time_adjustor.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <string>
 
 namespace http = boost::beast::http;
+typedef boost::date_time::local_adjustor<boost::posix_time::ptime, -8, boost::posix_time::us_dst> us_pacific;
+
+URLInfo::URLInfo(std::string u, int c, boost::posix_time::ptime t)
+    : url(u),
+      res_code(c),
+      req_time(t) {
+}
 
 std::string RequestHandler::to_string(http::response<http::string_body> res) {
 	std::stringstream res_str;
@@ -55,14 +64,14 @@ http::response<http::string_body> RequestHandler::get_response(const http::reque
 	http::response<http::string_body> response = handle_request(request);
 
 	//record url to response code pair
-	std::string url(request.target());
-	std::string res_code = std::to_string(response.result_int());
-	RequestHandler::url_to_res_code.push_back({url, res_code});
+	boost::posix_time::ptime timeServerUTC = boost::posix_time::second_clock::universal_time();
+	boost::posix_time::ptime timeCal = us_pacific::utc_to_local(timeServerUTC);
+	RequestHandler::url_info.emplace_back(request.target().to_string(), response.result_int(), timeCal);
 
 	return response;
 }
 
-std::vector<std::pair<std::string, std::string>> RequestHandler::url_to_res_code;
+std::vector<URLInfo> RequestHandler::url_info;
 
 std::string RequestHandler::get_name() {
 	return name;

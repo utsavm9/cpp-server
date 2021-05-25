@@ -2,12 +2,22 @@
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <string>
 #include <vector>
 
 #include "logger.h"
 
 namespace http = boost::beast::http;
+
+class URLInfo {
+   public:
+	URLInfo(std::string url, int res_code, boost::posix_time::ptime time);
+
+	std::string url;
+	int res_code;
+	boost::posix_time::ptime req_time;
+};
 
 class RequestHandler {
    public:
@@ -32,7 +42,7 @@ class RequestHandler {
 	static std::string to_string(http::response<http::string_body> res);
 	static std::string to_string(http::request<http::string_body> req);
 
-	static std::vector<std::pair<std::string, std::string>> url_to_res_code;
+	static std::vector<URLInfo> url_info;
 
    protected:
 	// Returns a response for the given request

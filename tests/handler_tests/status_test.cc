@@ -1,10 +1,9 @@
-#include "handler.h"
-
 #include <boost/beast/http.hpp>
 #include <boost/filesystem.hpp>
 #include <unordered_map>
 
 #include "gtest/gtest.h"
+#include "handler.h"
 #include "logger.h"
 #include "parser.h"
 #include "server.h"
@@ -19,14 +18,15 @@ TEST(StatusHandlerTest, UnitTests) {
 	p.Parse(&configStream, &config);
 	StatusHandler test_handler("/", config);
 
-	StatusHandler::url_to_res_code.push_back({"/foo", "200"});
-	StatusHandler::url_to_res_code.push_back({"/brick", "404"});
-	StatusHandler::url_to_res_code.push_back({"/file/trash.txt", "200"});
+	boost::posix_time::ptime now = boost::posix_time::second_clock::local_time();
+	StatusHandler::url_info.emplace_back("/foo", 200, now);
+	StatusHandler::url_info.emplace_back("/brick", 404, now);
+	StatusHandler::url_info.emplace_back("/file/trash.txt", 200, now);
 
-	server::urlToHandlerName.push_back({"/foo", "FooHandler"});
-	server::urlToHandlerName.push_back({"/", "NotFoundHandler"});
-	server::urlToHandlerName.push_back({"/file", "FileHandler"});
-	server::urlToHandlerName.push_back({"/status", "StatusHandler"});
+	server::urlToHandlerName.emplace_back("/foo", "FooHandler");
+	server::urlToHandlerName.emplace_back("/", "NotFoundHandler");
+	server::urlToHandlerName.emplace_back("/file", "FileHandler");
+	server::urlToHandlerName.emplace_back("/status", "StatusHandler");
 
 	http::request<http::string_body> req;
 	req.method(http::verb::get);
@@ -47,12 +47,12 @@ TEST(StatusHandlerTest, UnitTests) {
 	EXPECT_NE(res.find("/file</td><td>FileHandler"), std::string::npos);
 	EXPECT_NE(res.find("/status</td><td>StatusHandler"), std::string::npos);
 
-	std::pair<std::string, std::string> top = StatusHandler::url_to_res_code[StatusHandler::url_to_res_code.size() - 1];
+	URLInfo top = StatusHandler::url_info[StatusHandler::url_info.size() - 1];
 
 	//check get_response adds url and response code pair
-	ASSERT_TRUE(top.first == "/status");
-	ASSERT_TRUE(top.second == "200");
+	ASSERT_TRUE(top.url == "/status");
+	ASSERT_TRUE(top.res_code == 200);
 
-	StatusHandler::url_to_res_code.clear();
+	StatusHandler::url_info.clear();
 	server::urlToHandlerName.clear();
 }

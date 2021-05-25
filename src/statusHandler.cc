@@ -2,29 +2,38 @@
 
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/date_time/local_time_adjustor.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 #include <string>
 
 #include "handler.h"
 #include "server.h"
 
 namespace http = boost::beast::http;
+typedef boost::date_time::local_adjustor<boost::posix_time::ptime, -8, boost::posix_time::us_dst> us_pacific;
 
 StatusHandler::StatusHandler(__attribute__((unused)) const std::string& url_prefix, __attribute__((unused)) const NginxConfig& config) {
 	name = "Status";
 }
 
 http::response<http::string_body> StatusHandler::handle_request(const http::request<http::string_body>& request) {
-
-	auto url_to_res_code = RequestHandler::url_to_res_code;
+	auto url_info = RequestHandler::url_info;
 	auto url_to_handler = server::urlToHandlerName;
 
 	//setup html table content for url to response code
-	std::string url_to_res_code_table = "<tr><td>" + std::string(request.target()) + "</td><td>200</td></tr>";
+	std::stringstream url_info_table;
+	boost::posix_time::ptime timeServerUTC = boost::posix_time::second_clock::universal_time();
+	boost::posix_time::ptime timeLA = us_pacific::utc_to_local(timeServerUTC);
+	url_info_table << "<tr><td>" << std::string(request.target()) << "</td><td>200</td>"
+	               << "<td>" << timeLA << "</td>"
+	               << "</tr>";
 
-	for (int i = url_to_res_code.size() - 1; i >= 0; i--) {
-		url_to_res_code_table +=
-		    "<tr><td>" + url_to_res_code[i].first +
-		    "</td><td>" + url_to_res_code[i].second + "</td></tr>";
+	for (int i = url_info.size() - 1; i >= 0; i--) {
+		url_info_table << "<tr>"
+		               << "<td>" << url_info[i].url << "</td>"
+		               << "<td>" << url_info[i].res_code << "</td>"
+		               << "<td>" << url_info[i].req_time << "</td>"
+		               << "</tr>";
 	}
 
 	std::string url_prefix_to_handler_table = "";
@@ -35,7 +44,7 @@ http::response<http::string_body> StatusHandler::handle_request(const http::requ
 		    "</td><td>" + url_to_handler[i].second + "</td></tr>";
 	}
 
-	std::string num_requests = std::to_string(RequestHandler::url_to_res_code.size() + 1);
+	std::string num_requests = std::to_string(RequestHandler::url_info.size() + 1);
 
 	std::string html_template =
 	    "<html>"
@@ -52,8 +61,8 @@ http::response<http::string_body> StatusHandler::handle_request(const http::requ
 	    "</br>"
 	    "<h3>Received Requests</h3>"
 	    "<table>"
-	    "<tr><th>Location</th><th>Response Code</th></tr>" +
-	    url_to_res_code_table +
+	    "<tr><th>Location</th><th>Response Code</th><th>Time (LA)</th></tr>" +
+	    url_info_table.str() +
 	    "</table>"
 	    "</br>"
 	    "<h2>Registered Handlers</h2>"
