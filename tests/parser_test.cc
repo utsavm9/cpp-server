@@ -131,7 +131,7 @@ TEST_F(NginxConfigParserTest, ParseArgs) {
 		boost::filesystem::path filepath(argv_good_config[1]);
 		ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
 		NginxConfigParser::parse_args(2, argv_good_config, &config);
-		EXPECT_EQ(config.get_port(), 100);
+		EXPECT_EQ(config.get_field("port"), 100);
 	}
 
 	{
@@ -143,6 +143,6 @@ TEST_F(NginxConfigParserTest, ParseArgs) {
 		boost::filesystem::path filepath(argv_bad_config[1]);
 		ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
 		NginxConfigParser::parse_args(2, argv_bad_config, &config);
-		EXPECT_EQ(config.get_port(), 80);
+		EXPECT_EQ(config.get_field("port"), 80);
 	}
 }

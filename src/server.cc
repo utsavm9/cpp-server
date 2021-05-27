@@ -28,7 +28,7 @@ namespace net = boost::asio;
 server::server(boost::asio::io_context& io_context, NginxConfig c)
     : io_context_(io_context),
       config_(c),
-      port_(config_.get_port()),
+      port_(config_.get_field("port")),
       acceptor_(io_context_, tcp::endpoint(tcp::v4(), port_)),
       urlToHandler_(create_all_handlers(config_)) {
 	TRACE << "server: constructed and listening on port " << port_;

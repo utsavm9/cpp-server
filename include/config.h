@@ -31,5 +31,7 @@ class NginxConfig {
 	// Extracts the port number it finds in the stored config,
 	// otherwise returns the default port 80.
 	// Searches for "port <port_num>;" in config. Logs invalid entries.
-	int get_port();
+	int get_field(std::string field);
+
+	static std::unordered_map<std::string, short> defaults;
 };

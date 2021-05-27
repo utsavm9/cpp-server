@@ -57,7 +57,7 @@ TEST(ServerTest, ServeForever) {
 	    "location / NotFoundHandler{} \n"
 	    "location /invalid ErrorButServerShouldntCrash{}\n");
 	p.Parse(&configStream, &config);
-	ASSERT_EQ(config.get_port(), 8000);
+	ASSERT_EQ(config.get_field("port"), 8000);
 	std::thread server_thread(server_runner, &io_context, config, &done);
 
 	// Wait for server to start-up
@@ -188,7 +188,7 @@ TEST(ServerTest, MultiThreadTest) {
 	    "location /echo EchoHandler {}\n"
 	    "location /sleep SleepEchoHandler {}\n");
 	p.Parse(&configStream, &config);
-	ASSERT_EQ(config.get_port(), 9999);
+	ASSERT_EQ(config.get_field("port"), 9999);
 	std::thread server_thread(server_runner, &io_context, config, &done);
 
 	// Wait for server to start-up

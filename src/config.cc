@@ -23,56 +23,61 @@
 
 using boost::optional;
 
+std::unordered_map<std::string, short> NginxConfig::defaults = {{"port", 80}, {"threads", 4}, {"httpsPort", 443}};
+
 NginxConfig::NginxConfig() {
 }
 
-int NginxConfig::get_port() {
-	// Function to get extract port from statement if port is present.
-	auto get_port_from_statement = [](std::shared_ptr<NginxConfigStatement> statement) {
-		if (statement->tokens_.size() > 0 && statement->tokens_[0] == "port") {
-			// Inside a port statement
+int NginxConfig::get_field(std::string field) {
+	// Function to get extract field from statement if field is present.
+	auto get_field_from_statement = [field](std::shared_ptr<NginxConfigStatement> statement) {
+		if (statement->tokens_.size() > 0 && statement->tokens_[0] == field) {
+			// Inside a field statement
 			if (statement->tokens_.size() != 2) {
-				ERROR << "found a malformed port level-0 line in config with this many token: " << statement->tokens_.size();
+				ERROR << "found a malformed field level-0 line in config with this many token: " << statement->tokens_.size();
 				return optional<int>{};
 			}
 
-			// Try getting the port number
+			// Try getting the field number
 			try {
 				return optional<int>{std::stoi(statement->tokens_[1])};
 			} catch (std::out_of_range const &) {
-				ERROR << "port number too large";
+				ERROR << "field number too large";
 			} catch (std::invalid_argument const &) {
-				TRACE << "malformed port Number ";
+				TRACE << "malformed field Number ";
 			}
 		}
 		return optional<int>{};
 	};
 
-	// Do a level-0 scan for port
+	// Do a level-0 scan for field
 	for (const auto &statement : statements_) {
-		optional<int> port = get_port_from_statement(statement);
-		if (port.is_initialized()) {
-			TRACE << "extracted port number from config, setting port " << port.value();
-			return port.value();
+		optional<int> field_num = get_field_from_statement(statement);
+		if (field_num.is_initialized()) {
+			TRACE << "extracted field number from config, setting field " << field_num.value();
+			return field_num.value();
 		}
 	}
 
-	// Do a level-1 scan for port number inside the server block
+	// Do a level-1 scan for field number inside the server block
 	for (const auto &statement : statements_) {
 		auto tokens = statement->tokens_;
 		if (tokens.size() > 0 && tokens[0] == "server") {
 			// In top-level server block
 			for (const auto &substatement : statement->child_block_->statements_) {
-				optional<int> port = get_port_from_statement(substatement);
-				if (port.is_initialized()) {
-					TRACE << "extracted port number from config server block, setting port " << port.value();
-					return port.value();
+				optional<int> field_num = get_field_from_statement(substatement);
+				if (field_num.is_initialized()) {
+					TRACE << "extracted field number from config server block, setting field " << field_num.value();
+					return field_num.value();
 				}
 			}
 		}
 	}
 
-	// default port number
-	TRACE << "failed to find a port number from config, using 80 by default";
-	return 80;
+	try {
+		return defaults.at(field);
+	} catch (std::out_of_range const &) {
+		ERROR << "default field number not found";
+		return 0;
+	}
 }
