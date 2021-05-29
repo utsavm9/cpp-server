@@ -3,6 +3,7 @@
 
 #include <boost/asio.hpp>
 #include <boost/asio/strand.hpp>
+#include <boost/beast/ssl.hpp>
 #include <boost/bind.hpp>
 #include <iostream>
 #include <thread>
@@ -28,10 +29,11 @@ namespace net = boost::asio;
 server::server(boost::asio::io_context& io_context, NginxConfig c)
     : io_context_(io_context),
       config_(c),
-      port_(config_.get_field("port")),
-      acceptor_(io_context_, tcp::endpoint(tcp::v4(), port_)),
+      http_port_(config_.get_field("port")),
+      https_port_(443),
+      acceptor_(io_context_, tcp::endpoint(tcp::v4(), http_port_)),
       urlToHandler_(create_all_handlers(config_)) {
-	TRACE << "server: constructed and listening on port " << port_;
+	TRACE << "server: constructed and listening HTTP on port " << http_port_;
 }
 
 RequestHandler* server::create_handler(std::string url_prefix, std::string handler_name, NginxConfig subconfig) {
@@ -88,8 +90,15 @@ std::vector<std::pair<std::string, RequestHandler*>> server::create_all_handlers
 
 			std::string url_prefix = tokens[1];
 			std::string handler_name = tokens[2];
+
+			// Remove trailing slash from URL
 			if (url_prefix[url_prefix.size() - 1] == '/' && url_prefix != "/") {
 				url_prefix = url_prefix.substr(0, url_prefix.size() - 1);
+			}
+
+			// Add starting slash in URL
+			if (url_prefix.size() > 0 && url_prefix[0] != '/') {
+				url_prefix.insert(0, "/");
 			}
 
 			NginxConfig* child_block = statement->child_block_.get();

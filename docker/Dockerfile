@@ -8,8 +8,8 @@ WORKDIR /usr/src/project/build
 
 # Build and test
 RUN cmake ..
-RUN make
-RUN ctest --output-on_failure
+RUN make -j 4
+RUN ctest -j 4 --output-on_failure
 
 
 ### Deploy container ###
@@ -20,13 +20,11 @@ FROM koko:base as deploy
 COPY --from=builder /usr/src/project/build/bin/webserver .
 COPY --from=builder /usr/src/project/conf/deploy.conf .
 COPY --from=builder /usr/src/project/data .
+COPY --from=builder /usr/src/project/scripts/init.sh .
 
 # Expose some port(s)
 EXPOSE 80
+EXPOSE 443
 
 # Use ENTRYPOINT to specify the binary name
-ENTRYPOINT ["./webserver"]
-
-# Use CMD to specify arguments to ENTRYPOINT
-# TODO(utsavm9): Change this to conf file once port is merged
-CMD ["deploy.conf"]
+ENTRYPOINT ["/init.sh"]

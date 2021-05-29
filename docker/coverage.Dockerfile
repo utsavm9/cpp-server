@@ -7,5 +7,5 @@ WORKDIR /usr/src/project/build_coverage
 
 # Build and make coverage report
 RUN cmake -DCMAKE_BUILD_TYPE=Coverage ..
-RUN make
-RUN make coverage
+RUN make -j 4
+RUN make coverage -j 4

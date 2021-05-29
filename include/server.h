@@ -53,8 +53,11 @@ class server : public std::enable_shared_from_this<server> {
 	// The config with tokens parsed from the file passed to the program
 	NginxConfig config_;
 
-	// Port the server is listening on
-	short port_;
+	// HTTP Port the server is listening on
+	short http_port_;
+
+	// HTTPS Port the server is listening on
+	short https_port_;
 
 	// Manages the listen-bind-connect and other networking-related
 	// concepts about our socket

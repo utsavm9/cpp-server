@@ -32,6 +32,10 @@ set(Boost_USE_STATIC_LIBS ON)
 find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem log_setup log regex)
 message(STATUS "Boost version: ${Boost_VERSION}")
 
+# Enable OpenSSL
+set(OPENSSL_USE_STATIC_LIBS TRUE)
+find_package(OpenSSL REQUIRED)
+
 # Include our header files
 include_directories(include)
 add_library(parser src/parser.cc)
@@ -45,7 +49,7 @@ add_library(handler src/handler.cc src/echoHandler.cc src/fileHandler.cc src/not
 # Generate the server executable
 add_executable(webserver src/main.cc)
 target_link_libraries(webserver config parser logger server Boost::system pthread Boost::filesystem Boost::regex Boost::log_setup Boost::log)
-target_link_libraries(server session handler)
+target_link_libraries(server session handler OpenSSL::Crypto)
 target_link_libraries(session parser)
 
 # Generate the test executable
