@@ -31,3 +31,4 @@ steps:
     '.'
   ]
 images: ['gcr.io/$PROJECT_ID/koko:base', 'gcr.io/$PROJECT_ID/koko:latest']
+timeout: 1800s
