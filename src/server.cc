@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "compressedFileHandler.h"
 #include "config.h"
 #include "echoHandler.h"
 #include "fileHandler.h"
@@ -184,6 +185,11 @@ RequestHandler* server::create_handler(std::string url_prefix, std::string handl
 	else if (handler_name == "HealthHandler") {
 		TRACE << "server: registering health handler for url prefix: " << url_prefix;
 		return new HealthHandler(url_prefix, subconfig);
+	}
+
+	else if (handler_name == "CompressedFileHandler") {
+		TRACE << "server: registering compressed file handler for url prefix: " << url_prefix;
+		return new CompressedFileHandler(url_prefix, subconfig);
 	}
 	ERROR << "server: unexpected handler name parsed from config: " << handler_name;
 	return nullptr;

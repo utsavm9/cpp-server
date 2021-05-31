@@ -29,7 +29,8 @@ add_subdirectory(/usr/src/googletest googletest)
 # Enable Boost
 # Using static libraries so binaries can be deployed without a full boost install
 set(Boost_USE_STATIC_LIBS ON)
-find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem log_setup log regex)
+find_package(Boost 1.50 REQUIRED COMPONENTS system filesystem log_setup log regex iostreams)
+find_package(ZLIB REQUIRED)
 message(STATUS "Boost version: ${Boost_VERSION}")
 
 # Enable OpenSSL
@@ -51,6 +52,7 @@ add_executable(webserver src/main.cc)
 target_link_libraries(webserver config parser logger server Boost::system pthread Boost::filesystem Boost::regex Boost::log_setup Boost::log)
 target_link_libraries(server sessions handler OpenSSL::SSL OpenSSL::Crypto)
 target_link_libraries(sessions parser OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(handler Boost::iostreams z)
 
 # Generate the test executable
 file(GLOB TEST_SOURCE_FILES tests/*.cc tests/handler_tests/*.cc)

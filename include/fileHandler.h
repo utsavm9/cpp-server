@@ -20,8 +20,6 @@ class FileHandler : public RequestHandler {
 
    protected:
 	virtual http::response<http::string_body> handle_request(const http::request<http::string_body>& request) override;
-
-   private:
 	std::string url_prefix;
 	fs::path linux_dir;
 	bool invalid_config;
