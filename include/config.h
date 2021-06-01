@@ -28,10 +28,9 @@ class NginxConfig {
 	std::string ToString(int depth = 0);
 	std::vector<std::shared_ptr<NginxConfigStatement>> statements_;
 
-	// Extracts the port number it finds in the stored config,
-	// otherwise returns the default port 80.
-	// Searches for "port <port_num>;" in config. Logs invalid entries.
-	int get_field(std::string field);
+	// Extracts integer and strings from fields in the config
+	int get_num(std::string field);
+	std::string get_str(std::string field);
 
-	static std::unordered_map<std::string, short> defaults;
+	static std::unordered_map<std::string, short> default_nums;
 };

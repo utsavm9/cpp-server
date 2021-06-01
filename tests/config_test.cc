@@ -8,7 +8,7 @@
 
 class NginxConfigTest : public ::testing::Test {
    protected:
-	int default_port = NginxConfig::defaults["port"];
+	int default_port = NginxConfig::default_nums["port"];
 	NginxConfigParser parser_;
 
 	void test_extract_field(const char *filename, int expected, std::string fieldname) {
@@ -18,7 +18,7 @@ class NginxConfigTest : public ::testing::Test {
 		ASSERT_TRUE(boost::filesystem::exists(filepath)) << "File does not exist: " << filepath;
 		ASSERT_TRUE(parser_.Parse(filename, &config)) << "Parser error on file: " << filename;
 
-		EXPECT_EQ(config.get_field(fieldname), expected) << "extracted wrong port number for: " << filepath;
+		EXPECT_EQ(config.get_num(fieldname), expected) << "extracted wrong port number for: " << filepath;
 	}
 };
 

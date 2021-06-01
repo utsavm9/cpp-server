@@ -5,3 +5,5 @@ build_*
 mirror
 webserver
 logs
+tests/certs/actual-fullchain.pem
+tests/certs/actual-privkey.pem

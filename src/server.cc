@@ -29,7 +29,7 @@ namespace net = boost::asio;
 server::server(boost::asio::io_context& io_context, NginxConfig c)
     : io_context_(io_context),
       config_(c),
-      http_port_(config_.get_field("port")),
+      http_port_(config_.get_num("port")),
       https_port_(443),
       acceptor_(io_context_, tcp::endpoint(tcp::v4(), http_port_)),
       urlToHandler_(create_all_handlers(config_)) {
