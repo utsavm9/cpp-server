@@ -53,7 +53,11 @@ void session::on_read(beast::error_code err, std::size_t bytes_transferred) {
 		// and store the response in another data member.
 		construct_response(req_, res_);
 
-		close = res_.need_eof();
+		if(res_.find(http::field::connection) != res_.end() && res_.at(http::field::connection).to_string() == "close"){
+			TRACE << name << "force close in handler";
+			close = true;
+		}
+		else {close = res_.need_eof();}
 	}
 
 	INFO << "metrics: response code: " << res_.result_int();
@@ -71,7 +75,8 @@ void session::finished_write(bool close, beast::error_code err, std::size_t byte
 
 	if (close) {
 		beast::error_code ec = shutdown_stream();
-		TRACE << name << "stream ended, err: " << ec.message();
+		if(ec)
+			TRACE << name << "stream ended, err: " << ec.message();
 		return;
 	}
 
@@ -127,5 +132,11 @@ void session::construct_response(http::request<http::string_body>& req, http::re
 		TRACE << name << "handler creating the response is mapped to: " << handler_url;
 		INFO << "metrics: handler handling request: " << correct_handler->get_name();
 		res = correct_handler->get_response(req);
+		if(correct_handler->keep_alive){
+			res.set(http::field::connection, "keep-alive");
+		}
+		else {
+			res.set(http::field::connection, "close");
+		}
 	}
 }

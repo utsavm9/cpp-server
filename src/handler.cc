@@ -34,6 +34,7 @@ http::response<http::string_body> RequestHandler::bad_request() {
 	res.set(http::field::server, "koko.cs130.org");
 	res.set(http::field::content_type, "text/plain");
 	res.body() = "Request was malformed.\n";
+	res.set(http::field::connection, "close");
 	res.prepare_payload();
 	return res;
 }
@@ -45,6 +46,7 @@ http::response<http::string_body> RequestHandler::not_found_error() {
 	res.set(http::field::server, "koko.cs130.org");
 	res.set(http::field::content_type, "text/plain");
 	res.body() = "The requested resource was not found.\n";
+	res.set(http::field::connection, "close");
 	res.prepare_payload();
 	return res;
 }
@@ -56,6 +58,7 @@ http::response<http::string_body> RequestHandler::internal_server_error() {
 	res.set(http::field::server, "koko.cs130.org");
 	res.set(http::field::content_type, "text/plain");
 	res.body() = "An internal error occurred on the server. Utsav will be fired promptly.\n";
+	res.set(http::field::connection, "close");
 	res.prepare_payload();
 	return res;
 }
@@ -75,4 +78,8 @@ std::vector<URLInfo> RequestHandler::url_info;
 
 std::string RequestHandler::get_name() {
 	return name;
+}
+
+void RequestHandler::set_keep_alive_from_config(const NginxConfig& conf){
+	keep_alive = const_cast<NginxConfig&>(conf).get_num("keep-alive");
 }

@@ -40,6 +40,7 @@ ProxyRequestHandler::ProxyRequestHandler(const std::string &p, const NginxConfig
 		FATAL << "exception occurred : " << e.what();
 		invalid_config = true;
 	}
+
 }
 
 http::response<http::string_body> ProxyRequestHandler::req_synchronous(const http::request<http::string_body> &request) {

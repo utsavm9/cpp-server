@@ -14,7 +14,7 @@
 
 using boost::optional;
 
-std::unordered_map<std::string, short> NginxConfig::default_nums = {{"port", 80}, {"threads", 4}, {"httpsPort", 443}};
+std::unordered_map<std::string, short> NginxConfig::default_nums = {{"port", 80}, {"threads", 4}, {"httpsPort", 443}, {"keep-alive", 0}};
 
 NginxConfig::NginxConfig() {
 }

@@ -78,6 +78,6 @@ void sessionTCP::set_expiration(std::chrono::seconds s) {
 
 boost::beast::error_code sessionTCP::shutdown_stream() {
 	boost::beast::error_code err;
-	stream_.socket().shutdown(tcp::socket::shutdown_send, err);
+	stream_.socket().shutdown(tcp::socket::shutdown_both, err);
 	return err;
 }

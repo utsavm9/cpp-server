@@ -26,6 +26,8 @@ FileHandler::FileHandler(const std::string& prefix, const NginxConfig& config)
 		FATAL << "exception occurred : " << e.what();
 		invalid_config = true;
 	}
+
+	set_keep_alive_from_config(config);
 }
 
 http::response<http::string_body> FileHandler::handle_request(const http::request<http::string_body>& request) {

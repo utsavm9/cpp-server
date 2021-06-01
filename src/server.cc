@@ -272,7 +272,7 @@ void server::start_accepting_https() {
 	std::shared_ptr<server> this_pointer = shared_from_this();
 	auto connection_handler = boost::beast::bind_front_handler(&server::handle_accept_https, this_pointer);
 
-	// Start accepting a connection asynchrnously
+	// Start accepting a connection asynchrnouslyprintprint
 	https_acceptor_.async_accept(strand, std::move(connection_handler));
 }
 
@@ -287,7 +287,7 @@ void server::handle_accept(error_code err, tcp::socket socket) {
 
 	TRACE << "server: just accepted a HTTP connection, creating session for it";
 
-	// Create a session as a shared pointer.
+	// Create a session as a shared pointer.printprint
 	// Cannot directly assign the object to a variable because then the session
 	// would be deconstructed at the end of this functions scope, but session
 	// needs to stay alive for longer.

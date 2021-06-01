@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "logger.h"
+#include "config.h"
 
 namespace http = boost::beast::http;
 
@@ -29,6 +30,8 @@ class RequestHandler {
 	// Wraps handle_request and records url to response code pair
 	http::response<http::string_body> get_response(const http::request<http::string_body>& request);
 
+	void set_keep_alive_from_config(const NginxConfig& conf);
+
 	// Returns a 400 bad request
 	static http::response<http::string_body> bad_request();
 
@@ -43,6 +46,8 @@ class RequestHandler {
 	static std::string to_string(http::request<http::string_body> req);
 
 	static std::vector<URLInfo> url_info;
+
+	bool keep_alive = false;
 
    protected:
 	// Returns a response for the given request
