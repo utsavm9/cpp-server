@@ -1,7 +1,8 @@
-#include "sessionTCP.h"
+#include <boost/beast/ssl.hpp>
 
 #include "echoHandler.h"
 #include "gtest/gtest.h"
+#include "sessionSSL.h"
 
 namespace http = boost::beast::http;
 
@@ -27,13 +28,14 @@ TEST(Session, ConstructResponse) {
 	auto config = std::make_shared<NginxConfig>();
 	std::vector<std::pair<std::string, RequestHandler *>> url_to_handlers;
 	tcp::socket socket(io_context);
+	ssl::context ssl_ctx{ssl::context::tlsv12};
 	auto http_ok = http::response<http::string_body>{http::status::ok, 11};
 	auto http_redirect = http::response<http::string_body>{http::status::permanent_redirect, 11};
 
 	// create new session
 	url_to_handlers.push_back({"/foo", new MockRequestHandler(http_ok)});
 	url_to_handlers.push_back({"/foo/bar", new MockRequestHandler(http_redirect)});
-	auto s = std::make_shared<sessionTCP>(config.get(), url_to_handlers, std::move(socket));
+	auto s = std::make_shared<sessionSSL>(ssl_ctx, config.get(), url_to_handlers, std::move(socket));
 
 	// test no exceptions are thrown in while starting session
 	ASSERT_NO_THROW(s->start());

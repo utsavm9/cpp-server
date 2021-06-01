@@ -1,4 +1,18 @@
 # Koko Webserver
+
+## 0. Ports
+
+The following port numbers are used by various server instances than can be lauched
+during testing or productions. The pair of ports correspond to the HTTP and HTTPS port
+used by the server instance. The instances that can possibly be run in parallel need to
+have different port numbers.
+
+* 80, 443: Production server deployed to GCloud, uses `conf/deploy.conf`.
+* 8080, 8081: Manual testing server that can be launched using `conf/default.conf`.
+* 8000, 8001: `ServerTest.ServeForver` Unit test's server, ensuring that the server does not crashes instantly.
+* 8100, 8101: `ServerTest.MultiThreadTest` Unit test's server, for testing that the server can use multiple threads.
+* 8080, 8081: Integration test's primary server
+* 8082, 8083: Integration test's proxy server
  
 ## 1. Source Code Overview
  

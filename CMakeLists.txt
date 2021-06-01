@@ -40,7 +40,7 @@ find_package(OpenSSL REQUIRED)
 include_directories(include)
 add_library(parser src/parser.cc)
 add_library(config src/config.cc)
-add_library(sessions src/session.cc src/sessionTCP.cc)
+add_library(sessions src/session.cc src/sessionTCP.cc src/sessionSSL.cc)
 add_library(server src/server.cc)
 add_library(logger src/logger.cc)
 file(GLOB HANDLER_SOURCE_FILES src/handler.cc src/*Handler.cc)
@@ -70,7 +70,8 @@ generate_coverage_report(TARGETS webserver parser config sessions server handler
 
 # Integration tests
 file(GLOB_RECURSE TestDriver */integration/testDriver.sh)
+file(GLOB_RECURSE Certificate */certs/fullchain.pem)
 add_test(NAME IntegrationTests
-         COMMAND ${TestDriver} $<TARGET_FILE:webserver> 8080 8081)
+         COMMAND ${TestDriver} $<TARGET_FILE:webserver> 8080 8081 8082 8083 ${Certificate})
 # Set Compiler Warnings
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")

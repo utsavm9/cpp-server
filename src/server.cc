@@ -2,10 +2,15 @@
 #include "server.h"
 
 #include <boost/asio.hpp>
+#include <boost/asio/buffer.hpp>
+#include <boost/asio/ssl/context.hpp>
+#include <boost/asio/ssl/stream_base.hpp>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/ssl.hpp>
 #include <boost/bind.hpp>
+#include <cstddef>
 #include <iostream>
+#include <memory>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -18,6 +23,7 @@
 #include "logger.h"
 #include "notFoundHandler.h"
 #include "proxyRequestHandler.h"
+#include "sessionSSL.h"
 #include "sessionTCP.h"
 #include "sleepEchoHandler.h"
 #include "statusHandler.h"
@@ -25,15 +31,123 @@
 using boost::asio::ip::tcp;
 using boost::beast::error_code;
 namespace net = boost::asio;
+namespace ssl = boost::asio::ssl;
+namespace fs = boost::filesystem;
 
-server::server(boost::asio::io_context& io_context, NginxConfig c)
+std::vector<std::pair<std::string, std::string>> server::urlToHandlerName{};
+
+// Retuns true if function is able to load the SSL context with the certificate and
+// private key from the paths in the config
+inline bool load_server_certificate(boost::asio::ssl::context& ctx, NginxConfig& config) {
+	// Get paths
+	std::string cert_path = config.get_str("certificate");
+	std::string key_path = config.get_str("privateKey");
+	if (cert_path == "") {
+		ERROR << "server: could not get certificate path from config";
+		return false;
+	}
+	if (key_path == "") {
+		ERROR << "server: could not get private key path from config";
+		return false;
+	}
+
+	// Check paths
+	fs::path cert(cert_path);
+	fs::path key(key_path);
+	if (!(fs::exists(cert_path) && fs::is_regular_file(cert_path))) {
+		ERROR << "server: certificate file does not exist, path: " << cert;
+		return false;
+	}
+	if (!(fs::exists(key_path) && fs::is_regular_file(key_path))) {
+		ERROR << "server: private key file does not exist, path: " << key;
+		return false;
+	}
+
+	// Get contents of file
+	std::ifstream cert_file(cert_path);
+	std::ifstream key_file(key_path);
+	std::string cert_content;
+	cert_content.assign((std::istreambuf_iterator<char>(cert_file)), std::istreambuf_iterator<char>());
+	std::string key_content;
+	key_content.assign((std::istreambuf_iterator<char>(key_file)), std::istreambuf_iterator<char>());
+
+	TRACE << "server: using certificate: " << cert_path;
+	TRACE << "server: using private key: " << key_path;
+
+	// Use file contents to setup SSL context
+	try {
+		ctx.set_options(ssl::context::default_workarounds | ssl::context::no_sslv2);
+		ctx.use_certificate_chain(boost::asio::buffer(cert_content.data(), cert_content.size()));
+		ctx.use_private_key(
+		    boost::asio::buffer(key_content.data(), key_content.size()),
+		    ssl::context::file_format::pem);
+	} catch (std::exception& e) {
+		ERROR << "server: could not make SSL context from given certificate and private key, exception: " << e.what();
+		return false;
+	}
+
+	return true;
+}
+
+
+// Opens and binds an acceptor to the protocol and port specified in the endpoint
+// Returns false on any failure and returns true otherwise
+bool bind_acceptor(tcp::acceptor& acceptor, tcp::endpoint endpoint) {
+	error_code err;
+	acceptor.open(endpoint.protocol(), err);
+	if (err) {
+		ERROR << "server: could not open port " << endpoint.port() << ": " << err.message();
+		return false;
+	}
+
+	// Allow address reuse
+	acceptor.set_option(net::socket_base::reuse_address(true), err);
+	if (err) {
+		ERROR << "server: could not reuse address: " << err.message();
+		return false;
+	}
+
+	// Bind to the server address
+	acceptor.bind(endpoint, err);
+	if (err) {
+		ERROR << "server: could not bind to port " << endpoint.port() << ": " << err.message();
+		return false;
+	}
+
+	// Start listening for connections
+	acceptor.listen(net::socket_base::max_listen_connections, err);
+	if (err) {
+		ERROR << "server: could not listen on port " << endpoint.port() << ": " << err.message();
+		return false;
+	}
+
+	TRACE << "server: successfully binded the acceptor to port: " << endpoint.port();
+	return true;
+}
+
+server::server(boost::asio::io_context& io_context, ssl::context& ctx, NginxConfig c)
     : io_context_(io_context),
+      ctx_(ctx),
       config_(c),
-      http_port_(config_.get_num("port")),
-      https_port_(443),
-      acceptor_(io_context_, tcp::endpoint(tcp::v4(), http_port_)),
-      urlToHandler_(create_all_handlers(config_)) {
-	TRACE << "server: constructed and listening HTTP on port " << http_port_;
+      port_(config_.get_num("port")),
+      https_port_(config_.get_num("httpsPort")),
+      acceptor_(io_context_),
+      https_acceptor_(io_context_) {
+	TRACE << "server: constructed";
+	serving_ = false;
+	serving_https_ = false;
+
+	TRACE << "server: attempting to bind to HTTP port: " << port_;
+	if (bind_acceptor(acceptor_, tcp::endpoint{tcp::v4(), port_})) {
+		serving_ = true;
+	}
+
+	TRACE << "server: attempting to bind to HTTPS port: " << https_port_;
+	if (bind_acceptor(https_acceptor_, tcp::endpoint{tcp::v4(), https_port_})) {
+		serving_https_ = true;
+	}
+
+	urlToHandler_ = create_all_handlers(config_);
 }
 
 RequestHandler* server::create_handler(std::string url_prefix, std::string handler_name, NginxConfig subconfig) {
@@ -112,8 +226,12 @@ std::vector<std::pair<std::string, RequestHandler*>> server::create_all_handlers
 	return temp_urlToHandler;
 }
 
-void server::start_accept() {
-	TRACE << "server: preparing to accept a connection";
+void server::start_accepting() {
+	if (!serving_) {
+		TRACE << "server: server not serving HTTP connection on port: " << acceptor_.local_endpoint().port();
+		return;
+	}
+	TRACE << "server: preparing to accept a connection on HTTP port";
 
 	// A strand is like a thread+mutex combination
 	// This makes sure that while multiple write operation on DIFFERENT sockets (sessions?)
@@ -136,16 +254,32 @@ void server::start_accept() {
 	acceptor_.async_accept(strand, std::move(connection_handler));
 }
 
+void server::start_accepting_https() {
+	if (!serving_https_) {
+		TRACE << "server: server not serving HTTPS connection on port: " << https_acceptor_.local_endpoint().port();
+		return;
+	}
+	TRACE << "server: preparing to accept a connection on HTTPS port";
+
+	// Handle function to call once we establish a HTTPS connection
+	auto strand = net::make_strand(io_context_);
+	std::shared_ptr<server> this_pointer = shared_from_this();
+	auto connection_handler = boost::beast::bind_front_handler(&server::handle_accept_https, this_pointer);
+
+	// Start accepting a connection asynchrnously
+	https_acceptor_.async_accept(strand, std::move(connection_handler));
+}
+
 void server::handle_accept(error_code err, tcp::socket socket) {
 	// acceptor's async_accept passes the socket to this function when this
 	// handler is called
 
 	if (err) {
-		ERROR << "server: error ocurred while accepting connection: " << err.message();
+		ERROR << "server: error ocurred while accepting HTTP connection: " << err.message();
 		return;
 	}
 
-	TRACE << "server: just accepted a connection, creating session for it";
+	TRACE << "server: just accepted a HTTP connection, creating session for it";
 
 	// Create a session as a shared pointer.
 	// Cannot directly assign the object to a variable because then the session
@@ -164,7 +298,22 @@ void server::handle_accept(error_code err, tcp::socket socket) {
 	s->start();
 
 	// This thread should now accept new connections for another session again
-	start_accept();
+	start_accepting();
+}
+
+void server::handle_accept_https(error_code err, tcp::socket socket) {
+	if (err) {
+		ERROR << "server: error ocurred while accepting HTTPS connection: " << err.message();
+		return;
+	}
+
+	TRACE << "server: just accepted a HTTPS connection, creating session for it";
+
+	std::shared_ptr<sessionSSL> s = std::make_shared<sessionSSL>(ctx_, &config_, urlToHandler_, std::move(socket));
+	s->start();
+
+	// Accept new HTTPS connections now
+	start_accepting_https();
 }
 
 void server::register_server_sigint() {
@@ -184,16 +333,24 @@ void server::serve_forever(boost::asio::io_context* io_context, NginxConfig& con
 	TRACE << "server: setting up to serve forever";
 	server::register_server_sigint();
 
+	// The SSL context holds certificates
+	ssl::context ssl_ctx{ssl::context::tlsv12};
+
+	// Load the test/production certificates from the config
+	bool loaded_certs = load_server_certificate(ssl_ctx, config);
+
 	try {
 		// We need to have at least one shared pointer to server always
 		// otherwise enabled_shared_from_this will throw an exception.
 		// So, instead of creating a object directly, we will create a shared_ptr for
 		// the server.
-		std::shared_ptr<server> s = std::make_shared<server>(*io_context, config);
+		std::shared_ptr<server> s = std::make_shared<server>(*io_context, ssl_ctx, config);
+		s->serving_https_ = loaded_certs;
 
 		// Start server with port from config
 		// This will schedule a function call in the event loop
-		s->start_accept();
+		s->start_accepting();
+		s->start_accepting_https();
 
 		// Run server with 4 threads
 		int threads = 4;
@@ -228,5 +385,3 @@ void server::serve_forever(boost::asio::io_context* io_context, NginxConfig& con
 		FATAL << "server: exception occurred: " << e.what();
 	}
 }
-
-std::vector<std::pair<std::string, std::string>> server::urlToHandlerName;

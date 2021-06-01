@@ -1,9 +1,11 @@
 #!/bin/bash
-
 TESTDRIVER="$0"
 WEBSERVER="$1"
 PORT="$2"
-PROXY_PORT="$3"
+PORT_HTTPS="$3"
+PROXY_PORT="$4"
+PROXY_PORT_HTTPS="$5"
+CERTIFICATE="$6"
 DIR=$(dirname ${TESTDRIVER})
 
 # Utility functions
@@ -16,21 +18,38 @@ warn() {
 
 # Pre-test checks
 if [ ! -x "${WEBSERVER}" ]; then
-	echo "Usage: ${0} <path-to-webserver> <port-num> <proxy-port-num>"
+	echo "Usage: ${0} <path-to-webserver> <port-num> <proxy-port-num> <certificate>"
 	warn "webserver executable not passed in for integration tests, got '${WEBSERVER}' instead "
 	exit 1
 fi
 
 NUM_REGEX='^[0-9]+$'
 if [[ ! "$PORT" =~ $NUM_REGEX ]]; then
-	echo "Usage: ${0} <path-to-webserver> <port-num> <proxy-port-num>"
-	warn "got '$PORT' as the port number, integer expected"
+	echo "Usage: ${0} <path-to-webserver> <port-num> <https-port-num> <proxy-port-num> <proxy-port-https-num> <certificate>"
+	warn "got '$PORT' as the HTTP port number, integer expected"
 	exit 1
 fi
 
 if [[ ! "$PROXY_PORT" =~ $NUM_REGEX ]]; then
-	echo "Usage: ${0} <path-to-webserver> <port-num> <proxy-port-num>"
-	warn "got '$PROXY_PORT' as the proxy port number, integer expected"
+	echo "Usage: ${0} <path-to-webserver> <port-num> <https-port-num> <proxy-port-num> <proxy-port-https-num> <certificate>"
+	warn "got '$PROXY_PORT' as the proxy's HTTP port number, integer expected"
+	exit 1
+fi
+
+if [[ ! "$PORT_HTTPS" =~ $NUM_REGEX ]]; then
+	echo "Usage: ${0} <path-to-webserver> <port-num> <https-port-num> <proxy-port-num> <proxy-port-https-num> <certificate>"
+	warn "got '$PORT_HTTPS' as the HTTPS port number, integer expected"
+	exit 1
+fi
+
+if [[ ! "$PROXY_PORT_HTTPS" =~ $NUM_REGEX ]]; then
+	echo "Usage: ${0} <path-to-webserver> <port-num> <https-port-num> <proxy-port-num> <proxy-port-https-num> <certificate>"
+	warn "got '$PROXY_PORT_HTTPS' as the proxy's HTTPS port number, integer expected"
+	exit 1
+fi
+
+if [ ! -f "$CERTIFICATE" ]; then
+	warn "got certificate filepath '$CERTIFICATE', which is not a file"
 	exit 1
 fi
 
@@ -39,6 +58,9 @@ fi
 start() {
 	local CONFIG="
 		port $PORT;
+		httpsPort $PORT_HTTPS;
+		certificate ../tests/certs/fullchain.pem;
+		privateKey ../tests/certs/privkey.pem;
 
 		location /static StaticHandler {
 			root ../data/static_data;
@@ -75,6 +97,9 @@ start() {
 
 	local PROXY_CONFIG="
 		port $PROXY_PORT;
+		httpsPort $PROXY_PORT_HTTPS;
+		certificate ../tests/certs/fullchain.pem;
+		privateKey ../tests/certs/privkey.pem;
 
 		location \"/proxystatic\" StaticHandler {
 			root ../data/static_data;
@@ -144,18 +169,18 @@ stop() {
 	rm "$PROXY_CONFIG_PATH"
 
 	if [ $KILL_RET -ne 0 ] || [ $PROXY_KILL_RET -ne 0 ]; then
-		warn "could not kill webservers properly, kill returned '$KILL_RET' and proxy kill returned '$PROXY_KILL"
+		warn "could not kill webservers properly, kill returned '$KILL_RET' and proxy kill returned '$PROXY_KILL'"
 		exit 1
 	fi
 }
 
-test_header() {
+test_header_http() {
 	local OUTPUT="$DIR/output"
 	local HEADER="$DIR/header"
 	local URL="$1"
 	local SEARCH="$2"
 
-	curl -s -o "$OUTPUT" -D "$HEADER" localhost:"$PORT""$URL"
+	curl -s -o "$OUTPUT" -D "$HEADER" http://localhost:"$PORT""$URL"
 
 	grep "$SEARCH" "$HEADER"
 	GREP_RET=$?
@@ -166,7 +191,7 @@ test_header() {
 	rm "$HEADER"
 
 	if [ $GREP_RET -ne 0 ]; then
-		warn "server response header was not expected for $URL"
+		warn "server response header was not expected for http://localhost:${PORT}${URL}"
 		echo "Response obtained from server:"
 		echo "$HEADER_CONTENT"
 		echo "Expected to see:"
@@ -177,13 +202,49 @@ test_header() {
 	fi
 }
 
+test_header_https() {
+	local OUTPUT="$DIR/output"
+	local HEADER="$DIR/header"
+	local URL="$1"
+	local SEARCH="$2"
+
+	curl -s -o "$OUTPUT" -D "$HEADER" https://localhost:"$PORT_HTTPS""$URL" --cacert "$CERTIFICATE"
+
+	grep "$SEARCH" "$HEADER"
+	GREP_RET=$?
+	OUTPUT_CONTENT=$(cat "$OUTPUT")
+	HEADER_CONTENT=$(cat "$HEADER")
+
+	rm "$OUTPUT"
+	rm "$HEADER"
+
+	if [ $GREP_RET -ne 0 ]; then
+		warn "server response header was not expected for https://localhost:${PORT_HTTPS}${URL}"
+		echo "Response obtained from server:"
+		echo "$HEADER_CONTENT"
+		echo "Expected to see:"
+		echo "$SEARCH"
+
+		stop
+		exit 1
+	fi
+}
+
+test_header() {
+	local URL="$1"
+	local SEARCH="$2"
+
+	test_header_http "$URL" "$SEARCH"
+	test_header_https "$URL" "$SEARCH"
+}
+
 test_body() {
 	local OUTPUT="$DIR/output"
 	local HEADER="$DIR/header"
 	local URL="$1"
 	local SEARCH="$2"
 
-	curl -s -o "$OUTPUT" -D "$HEADER" localhost:"$PORT""$URL"
+	curl -s -o "$OUTPUT" -D "$HEADER" http://localhost:"$PORT""$URL"
 
 	grep "$SEARCH" "$OUTPUT"
 	GREP_RET=$?
@@ -211,7 +272,7 @@ test_body_content() {
 	local URL="$1"
 	local FILEPATH="$2"
 
-	curl -s -o "$OUTPUT" -D "$HEADER" localhost:"$PORT""$URL"
+	curl -s -o "$OUTPUT" -D "$HEADER" http://localhost:"$PORT""$URL"
 
 	diff -s "$FILEPATH" "$OUTPUT"
 	DIFF_RET=$?
@@ -239,7 +300,7 @@ test_bad_req() {
 	local REQUEST="$1"
 	local SEARCH="$2"
 
-	printf "$REQUEST" | nc localhost 8081 -W 1 >file.txt
+	printf "$REQUEST" | nc localhost "$PORT" -W 1 >file.txt
 
 	OUTPUT_CONTENT=$(cat file.txt)
 	grep "$SEARCH" file.txt

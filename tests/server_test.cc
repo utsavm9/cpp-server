@@ -1,5 +1,6 @@
 #include "server.h"
 
+#include <boost/beast/ssl.hpp>
 #include <chrono>
 #include <iostream>
 #include <sstream>
@@ -15,6 +16,56 @@ namespace beast = boost::beast;
 namespace http = boost::beast::http;
 namespace net = boost::asio;
 using tcp = net::ip::tcp;
+namespace ssl = boost::asio::ssl;
+
+TEST(ServerTest, LoadCertificates) {
+	{
+		NginxConfig config;
+		NginxConfigParser p;
+		ssl::context ctx{ssl::context::tlsv12};
+		std::istringstream configStream;
+		configStream.str(
+		    "certificate ../tests/certs/fullchain.pem;\n"
+		    "privateKey ../tests/certs/privkey.pem;");
+		p.Parse(&configStream, &config);
+		ASSERT_EQ(config.get_str("certificate"), "../tests/certs/fullchain.pem");
+		ASSERT_EQ(config.get_str("privateKey"), "../tests/certs/privkey.pem");
+
+		ASSERT_TRUE(load_server_certificate(ctx, config));
+	}
+
+	auto test_load_failure = [](std::string config_str) {
+		NginxConfig config;
+		NginxConfigParser p;
+		ssl::context ctx{ssl::context::tlsv12};
+		std::istringstream configStream;
+		configStream.str(config_str);
+		p.Parse(&configStream, &config);
+
+		ASSERT_FALSE(load_server_certificate(ctx, config));
+	};
+
+	// Not found certificate path
+	test_load_failure("privateKey ../tests/certs/privkey.pem;");
+
+	// Not found private key path
+	test_load_failure("certificate ../tests/certs/fullchain.pem;");
+
+	// Invalid certificate file
+	test_load_failure(
+	    "certificate ../tests;\n"
+	    "privateKey ../tests/certs/privkey.pem;");
+
+	// Invalid perivate key file
+	test_load_failure(
+	    "certificate ../tests/certs/fullchain.pem;\n"
+	    "privateKey missing;");
+
+	// Certificate not a PEM file
+	test_load_failure(
+	    "certificate ../tests/config/missing_port;\n"
+	    "privateKey ../tests/certs/privkey.pem;");
+}
 
 void server_runner(boost::asio::io_context* io_context, NginxConfig config, bool* done) {
 	server::serve_forever(io_context, config);
@@ -48,7 +99,8 @@ TEST(ServerTest, ServeForever) {
 	std::istringstream configStream;
 
 	configStream.str(
-	    "port 8000; # The port my server listens on\n"
+	    "port 8000;\n"
+	    "httpsPort 8001;\n"
 	    "location /echo EchoHandler {}\n"
 	    "location /print EchoHandler {}\n"
 	    "location /static StaticHandler {\n"
@@ -58,6 +110,7 @@ TEST(ServerTest, ServeForever) {
 	    "location /invalid ErrorButServerShouldntCrash{}\n");
 	p.Parse(&configStream, &config);
 	ASSERT_EQ(config.get_num("port"), 8000);
+	ASSERT_EQ(config.get_num("httpsPort"), 8001);
 	std::thread server_thread(server_runner, &io_context, config, &done);
 
 	// Wait for server to start-up
@@ -159,7 +212,6 @@ TEST(ServerTest, HandlerCreation) {
 		std::istringstream configStream;
 
 		configStream.str(
-		    "port 8080; # The port my server listens on\n"
 		    "location /echo EchoHandler {}\n"
 		    "location /print EchoHandler {}\n"
 		    "location /static/ StaticHandler {\n"
@@ -184,11 +236,15 @@ TEST(ServerTest, MultiThreadTest) {
 	std::istringstream configStream;
 
 	configStream.str(
-	    "port 9999; # The port my server listens on\n"
+	    "port 8100;\n"
+	    "httpsPort 8101;\n"
+	    "certificate ../tests/certs/fullchain.pem;\n"
+	    "privateKey ../tests/certs/privkey.pem;"
 	    "location /echo EchoHandler {}\n"
 	    "location /sleep SleepEchoHandler {}\n");
 	p.Parse(&configStream, &config);
-	ASSERT_EQ(config.get_num("port"), 9999);
+	ASSERT_EQ(config.get_num("port"), 8100);
+	ASSERT_EQ(config.get_num("httpsPort"), 8101);
 	std::thread server_thread(server_runner, &io_context, config, &done);
 
 	// Wait for server to start-up
@@ -214,7 +270,7 @@ TEST(ServerTest, MultiThreadTest) {
 	tcp::resolver sleep_resolver(sleep_ioc);
 	beast::tcp_stream sleep_stream(sleep_ioc);
 
-	tcp::resolver::query query("localhost", "9999");
+	tcp::resolver::query query("localhost", "8100");
 	auto results = sleep_resolver.resolve(query);
 	sleep_stream.connect(results);
 
