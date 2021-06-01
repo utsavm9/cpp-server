@@ -33,7 +33,7 @@ http::response<http::string_body> RequestHandler::bad_request() {
 	res.result(http::status::bad_request);
 	res.set(http::field::server, "koko.cs130.org");
 	res.set(http::field::content_type, "text/plain");
-	res.body() = "Request was malformed.";
+	res.body() = "Request was malformed.\n";
 	res.prepare_payload();
 	return res;
 }
@@ -44,7 +44,7 @@ http::response<http::string_body> RequestHandler::not_found_error() {
 	res.result(http::status::not_found);
 	res.set(http::field::server, "koko.cs130.org");
 	res.set(http::field::content_type, "text/plain");
-	res.body() = "The requested resource was not found.";
+	res.body() = "The requested resource was not found.\n";
 	res.prepare_payload();
 	return res;
 }
@@ -55,7 +55,7 @@ http::response<http::string_body> RequestHandler::internal_server_error() {
 	res.result(http::status::internal_server_error);
 	res.set(http::field::server, "koko.cs130.org");
 	res.set(http::field::content_type, "text/plain");
-	res.body() = "An internal error occurred on the server. Utsav will be fired promptly.";
+	res.body() = "An internal error occurred on the server. Utsav will be fired promptly.\n";
 	res.prepare_payload();
 	return res;
 }

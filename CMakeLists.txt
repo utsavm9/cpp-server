@@ -40,39 +40,37 @@ find_package(OpenSSL REQUIRED)
 include_directories(include)
 add_library(parser src/parser.cc)
 add_library(config src/config.cc)
-add_library(session src/session.cc)
+add_library(sessions src/session.cc src/sessionTCP.cc)
 add_library(server src/server.cc)
 add_library(logger src/logger.cc)
-add_library(handler src/handler.cc src/echoHandler.cc src/fileHandler.cc src/notFoundHandler.cc src/proxyRequestHandler.cc src/statusHandler.cc 
-    src/healthHandler.cc src/sleepEchoHandler.cc)
+file(GLOB HANDLER_SOURCE_FILES src/handler.cc src/*Handler.cc)
+add_library(handler ${HANDLER_SOURCE_FILES})
 
 # Generate the server executable
 add_executable(webserver src/main.cc)
 target_link_libraries(webserver config parser logger server Boost::system pthread Boost::filesystem Boost::regex Boost::log_setup Boost::log)
-target_link_libraries(server session handler OpenSSL::Crypto)
-target_link_libraries(session parser)
+target_link_libraries(server sessions handler OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(sessions parser OpenSSL::SSL OpenSSL::Crypto)
 
 # Generate the test executable
-add_executable(unit_tests tests/parser_test.cc tests/config_test.cc tests/server_test.cc tests/logger_test.cc tests/session_test.cc
-	tests/handler_tests/handler_test.cc tests/handler_tests/echo_test.cc tests/handler_tests/file_test.cc tests/handler_tests/health_test.cc
-	tests/handler_tests/notFound_test.cc tests/handler_tests/proxy_test.cc tests/handler_tests/status_test.cc tests/handler_tests/sleepEcho_test.cc)
-target_link_libraries(unit_tests 
-	parser config server logger 
-	gtest_main 
-	Boost::system Boost::filesystem Boost::filesystem Boost::regex Boost::log_setup Boost::log
-)
+file(GLOB TEST_SOURCE_FILES tests/*.cc tests/handler_tests/*.cc)
+add_executable(unit_tests ${TEST_SOURCE_FILES})
+target_link_libraries(unit_tests
+	parser config server logger
+	gtest_main
+	Boost::system Boost::filesystem Boost::regex Boost::log_setup Boost::log
+	OpenSSL::SSL OpenSSL::Crypto)
 
 # Unit tests
 gtest_discover_tests(unit_tests WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 
 # Coverage Report
 include(cmake/CodeCoverageReportConfig.cmake)
-generate_coverage_report(TARGETS webserver parser config session server handler logger TESTS unit_tests)
+generate_coverage_report(TARGETS webserver parser config sessions server handler logger TESTS unit_tests)
 
 # Integration tests
 file(GLOB_RECURSE TestDriver */integration/testDriver.sh)
-add_test(NAME IntegrationTests 
+add_test(NAME IntegrationTests
          COMMAND ${TestDriver} $<TARGET_FILE:webserver> 8080 8081)
-
 # Set Compiler Warnings
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra")

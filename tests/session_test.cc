@@ -1,4 +1,4 @@
-#include "session.h"
+#include "sessionTCP.h"
 
 #include "echoHandler.h"
 #include "gtest/gtest.h"
@@ -33,7 +33,7 @@ TEST(Session, ConstructResponse) {
 	// create new session
 	url_to_handlers.push_back({"/foo", new MockRequestHandler(http_ok)});
 	url_to_handlers.push_back({"/foo/bar", new MockRequestHandler(http_redirect)});
-	auto s = std::make_shared<session>(config.get(), url_to_handlers, std::move(socket));
+	auto s = std::make_shared<sessionTCP>(config.get(), url_to_handlers, std::move(socket));
 
 	// test no exceptions are thrown in while starting session
 	ASSERT_NO_THROW(s->start());

@@ -18,7 +18,7 @@
 #include "logger.h"
 #include "notFoundHandler.h"
 #include "proxyRequestHandler.h"
-#include "session.h"
+#include "sessionTCP.h"
 #include "sleepEchoHandler.h"
 #include "statusHandler.h"
 
@@ -154,7 +154,7 @@ void server::handle_accept(error_code err, tcp::socket socket) {
 	// When the session itself no longer needs its own this pointer
 	// (which will happen after closing the session and not assigning any more future async calls)
 	// the session will be automatically destroyed since it is inside a shared pointer.
-	std::shared_ptr<session> s = std::make_shared<session>(&config_, urlToHandler_, std::move(socket));
+	std::shared_ptr<sessionTCP> s = std::make_shared<sessionTCP>(&config_, urlToHandler_, std::move(socket));
 
 	// Start the session, which will call do_read and read the data
 	// out of the socket we passed. socket will be destroyed when this function

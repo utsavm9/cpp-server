@@ -2,6 +2,8 @@
 
 #include <boost/asio.hpp>
 #include <boost/beast/http.hpp>
+#include <boost/beast/http/write.hpp>
+#include <boost/beast/ssl.hpp>
 #include <vector>
 
 #include "config.h"
@@ -11,48 +13,54 @@ using boost::asio::ip::tcp;
 namespace beast = boost::beast;
 namespace http = beast::http;
 
-// Adapted from the session class from
-// the official Boost Beast library examples
-// https://www.boost.org/doc/libs/develop/libs/beast/example/http/server/async/http_server_async.cpp
-
-class session : public std::enable_shared_from_this<session> {
+class session {
    public:
-	// The constructor taken in ownership of the stream by making
-	// this object take ownership of the socket.
-	// && means that socket was passed from a std::move, which means while no copies
-	// were created, the socket is no longer accessible from the server.
-	session(NginxConfig *c, std::vector<std::pair<std::string, RequestHandler *>> &utoh, tcp::socket &&socket);
-
-	// To log when sessions are being destroyed
-	~session();
-
 	// Assigns a strand to take care of this object's execution
-	// Is called once by the server and then control loops between
-	// do_read → on_read → finished_write and back to do_read again.
-	void start();
+	// Should be called at thr start of the session for the session
+	// to take ownership of itself
+	virtual void start() = 0;
 
 	// Given the request object, find the right handler and fills in the response
 	void construct_response(http::request<http::string_body> &req, http::response<http::string_body> &res);
 
-   private:
-	// Assigns that a asynchronously read should happen when we receive a request
-	// and that on_read should be called once that happens
+	// Runs first and before a read happens
 	void do_read();
 
-	// Constructs the response from the request, and then assigns a
-	// asynchronous write that should happen to send the response back
-	// Also assigns that finished_write should be called after we
-	// write/send the response.
+	// Subclasses override http async_read based on their type of stream
+	virtual void async_read_stream() = 0;
+
+	// Runs after the read has finished and before the write.
+	// Constructs the response from the request.
 	void on_read(beast::error_code err, std::size_t bytes_transferred);
 
+	// Subclasses override http async_write based on their type of stream
+	virtual void async_write_stream(bool close) = 0;
+
+	// Runs after the write is finished
 	// Clears the response and starts another read by calling do_read
 	void finished_write(bool close, beast::error_code err, std::size_t bytes_transferred);
 
+   protected:
+	// Stream-specific utility functions that subclasses need to
+	// override based on the type of their stream
+	virtual void log_ip_address() = 0;
+	virtual void set_expiration(std::chrono::seconds s) = 0;
+	virtual boost::beast::error_code shutdown_stream() = 0;
+
+	// Log metric name
+	std::string name;
+
+	// Contains the entire server config
 	NginxConfig *config;
+
+	// Maps URLs to handler pointers
 	std::vector<std::pair<std::string, RequestHandler *>> urlToHandler;
 
-	beast::tcp_stream stream_;
+	// Request and response associated to this session
 	http::request<http::string_body> req_;
 	http::response<http::string_body> res_;
+
+	// Intermediate buffer used for async read and write into the
+	// request and response objects
 	beast::flat_buffer buffer_;
 };

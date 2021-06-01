@@ -1,12 +1,3 @@
-// An nginx config file parser.
-//
-// See:
-//   http://wiki.nginx.org/Configuration
-//   http://blog.martinfjordvald.com/2010/07/nginx-primer/
-//
-// How Nginx does it:
-//   http://lxr.nginx.org/source/src/core/ngx_conf_file.c
-
 #include "config.h"
 
 #include <boost/optional.hpp>
