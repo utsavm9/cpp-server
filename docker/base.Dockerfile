@@ -6,15 +6,17 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 # Update the base image and install build environment
 RUN apt-get update && apt-get install -y \
-	build-essential \
-	cmake \
-	curl \
-	gcovr \
-	httpie \
-	libboost-log-dev \
-	libboost-regex-dev \
-	libboost-system-dev \
-	libgtest-dev \
-	libssl-dev \
-	certbot \
-	netcat
+    build-essential \
+    cmake \
+    curl \
+    gcovr \
+    httpie \
+    libboost-log-dev \
+    libboost-regex-dev \
+    libboost-system-dev \
+    libgtest-dev \
+    libssl-dev \
+    certbot \
+    netcat \
+    libboost-iostreams-dev \
+    zlib1g-dev
