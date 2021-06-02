@@ -2,20 +2,7 @@
 
 CompressedFileHandler::CompressedFileHandler(const std::string& prefix, const NginxConfig& config)
     : FileHandler(prefix, config) {
-	name = "File";
-
-	// Ignore tailing slashes while registering urls
-	if (url_prefix.size() > 0 && url_prefix[url_prefix.size() - 1] == '/') {
-		url_prefix.erase(url_prefix.size() - 1);
-	}
-
-	try {
-		linux_dir = config.statements_.at(0)->tokens_.at(1);
-		invalid_config = false;
-	} catch (std::exception& e) {
-		FATAL << "exception occurred : " << e.what();
-		invalid_config = true;
-	}
+	name = "CompressedFileHandler";
 }
 
 std::string compress(const std::string& data) {
@@ -34,6 +21,23 @@ std::string compress(const std::string& data) {
 
 http::response<http::string_body> CompressedFileHandler::handle_request(const http::request<http::string_body>& request) {
 	http::response<http::string_body> res = FileHandler::handle_request(request);
+
+	// Return uncompressed body if gzip is not accepted as a encoding
+	bool to_compress = false;
+	for (auto &h : request.base()) {
+		if (h.name_string() == "Accept-Encoding") {
+			if (h.value().find("gzip") != boost::beast::string_view::npos) {
+				to_compress = true;
+			}
+			break;
+		}
+	}
+	if (!to_compress) {
+		TRACE << "compressedFileHandler: request does not accept gzip encoding, not compressing body";
+		return res;
+	}
+	TRACE << "compressedFileHandler: request accepts gzip encoding, compressing body";
+
 	std::string body = res.body();
 	std::string compressedBody = compress(body);
 	res.body() = compressedBody;
