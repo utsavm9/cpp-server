@@ -90,7 +90,7 @@ void session::finished_write(bool close, beast::error_code err, std::size_t byte
 }
 
 void session::construct_response(http::request<http::string_body>& req, http::response<http::string_body>& res) {
-	TRACE << name <<  "received " << req.method() << " request, user agent '" << req[http::field::user_agent] << "'";
+	TRACE << name << "received " << req.method() << " request, user agent '" << req[http::field::user_agent] << "'";
 
 	std::string target = std::string(req.target());
 
@@ -130,7 +130,14 @@ void session::construct_response(http::request<http::string_body>& req, http::re
 		res = RequestHandler::not_found_error();
 	} else {
 		TRACE << name << "handler creating the response is mapped to: " << handler_url;
+		INFO << "metrics: " << name << "serving URL: " << handler_url;
 		INFO << "metrics: handler handling request: " << correct_handler->get_name();
+
+		// To identify timing metrics of compressed file handler
+		if (correct_handler->get_name() == "CompressedFileHandler") {
+			name += "CompressedFileHandler: ";
+		}
+
 		res = correct_handler->get_response(req);
 		if(correct_handler->keep_alive){
 			res.set(http::field::connection, "keep-alive");

@@ -38,10 +38,16 @@ http::response<http::string_body> CompressedFileHandler::handle_request(const ht
 	}
 	TRACE << "compressedFileHandler: request accepts gzip encoding, compressing body";
 
+	// Compress the body
 	std::string body = res.body();
+	int initial_len = body.size();
+
 	std::string compressedBody = compress(body);
 	res.body() = compressedBody;
 	res.set(http::field::content_encoding, "gzip");
 	res.set(http::field::content_length, compressedBody.size());
+
+	INFO << "metrics: compressedHandler reduced body size (bytes): " << (initial_len - compressedBody.size());
+
 	return res;
 }

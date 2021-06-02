@@ -15,8 +15,10 @@ RUN apt-get update && apt-get install -y \
     libboost-regex-dev \
     libboost-system-dev \
     libgtest-dev \
+    netcat \
     libssl-dev \
     certbot \
-    netcat \
     libboost-iostreams-dev \
     zlib1g-dev
+
+# Last four libraries/tools are needed for HTTPS and Compression

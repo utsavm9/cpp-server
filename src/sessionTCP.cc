@@ -17,9 +17,13 @@ sessionTCP::sessionTCP(NginxConfig* c, std::vector<std::pair<std::string, Reques
 	name = "sessionTCP: ";
 	TRACE << name << "constructed a new session";
 	log_ip_address();
+	begin = std::chrono::steady_clock::now();
 }
 
 sessionTCP::~sessionTCP() {
+	std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
+	std::chrono::microseconds difference = std::chrono::duration_cast<std::chrono::microseconds>(end - begin);
+	INFO << "metrics: " << name << " alive time (ms): " << difference.count();
 	TRACE << name << "closed";
 }
 
@@ -66,7 +70,7 @@ void sessionTCP::async_write_stream(bool close) {
 void sessionTCP::log_ip_address() {
 	try {
 		std::string ip_addr = stream_.socket().remote_endpoint().address().to_string();
-		INFO << name << "request IP: " << ip_addr;
+		INFO << "metrics: request IP: " << ip_addr;
 	} catch (std::exception& e) {
 		TRACE << name << "exception occurred while getting the IP address of socket: " << e.what();
 	}

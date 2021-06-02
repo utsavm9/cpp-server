@@ -5,6 +5,7 @@
 #include <boost/beast/http/write.hpp>
 #include <boost/beast/ssl.hpp>
 #include <vector>
+#include <chrono>
 
 #include "config.h"
 #include "handler.h"
@@ -63,4 +64,7 @@ class session {
 	// Intermediate buffer used for async read and write into the
 	// request and response objects
 	beast::flat_buffer buffer_;
+
+	// Time point for when the session was created
+	std::chrono::steady_clock::time_point begin;
 };
