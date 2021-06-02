@@ -14,6 +14,16 @@ certbot certonly \
 # Print the error logs so that they are viewable in GCloud Logs
 cat /logs/certbot/stderr.log
 
+# Copy certificates if we exceed Let's Encrypt's rate limit
+if [[ ! -f "/etc/letsencrypt/live/www.koko.cs130.org/fullchain.pem" ]]; then
+	mkdir --parent /etc/letsencrypt/live/www.koko.cs130.org/
+	cp /tests/certs/fullchain2.pem /etc/letsencrypt/live/www.koko.cs130.org/fullchain.pem
+fi
+if [[ ! -f "/etc/letsencrypt/live/www.koko.cs130.org/privkey.pem" ]]; then
+	mkdir --parent /etc/letsencrypt/live/www.koko.cs130.org/
+	cp /tests/certs/privkey2.pem /etc/letsencrypt/live/www.koko.cs130.org/privkey.pem
+fi
+
 # Start our server
 #
 # Bash script becomes our server with exec command

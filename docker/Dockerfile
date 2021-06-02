@@ -16,11 +16,12 @@ RUN ctest -j 4 --output-on_failure
 # Define deploy stage
 FROM koko:base as deploy
 
-# Copy server output binary to "."
-COPY --from=builder /usr/src/project/build/bin/webserver .
-COPY --from=builder /usr/src/project/conf/deploy.conf .
-COPY --from=builder /usr/src/project/data .
-COPY --from=builder /usr/src/project/scripts/init.sh .
+# Copy files to server root directory
+COPY --from=builder /usr/src/project/build/bin/webserver /
+COPY --from=builder /usr/src/project/conf/deploy.conf /
+COPY --from=builder /usr/src/project/data /
+COPY --from=builder /usr/src/project/scripts/init.sh /
+COPY --from=builder /usr/src/project/tests/certs /tests/certs
 
 # Expose some port(s)
 EXPOSE 80
