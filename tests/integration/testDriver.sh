@@ -93,6 +93,10 @@ start() {
 
 		location /sleep SleepEchoHandler {
 		}
+
+		location /keepalive EchoHandler {
+			keep-alive 1;
+		}
 	"
 
 	local PROXY_CONFIG="
@@ -320,6 +324,61 @@ test_bad_req() {
 	fi
 }
 
+test_keep_alive(){
+	local URL1="$1" #URL with keep alive
+	local URL2="$2" #URL without keep alive
+
+	curl -v localhost:"$PORT""$URL1" localhost:"$PORT""$URL2" > file.txt 2>&1
+
+	OUTPUT_CONTENT=$(cat file.txt)
+	grep "Connection #0 to host localhost left intact" file.txt
+	GREP_RET=$?
+
+
+	if [ $GREP_RET -ne 0 ]; then
+		warn "server response was not expected"
+		echo "Response obtained from server:"
+		echo "$OUTPUT_CONTENT"
+		echo "Expected to see: Connection #0 to host localhost left intact"
+		echo "For Path:"
+		echo "$URL1"
+
+		stop
+		exit 1
+	fi
+
+	grep "Re-using existing connection! (#0) with host localhost" file.txt
+
+	if [ $GREP_RET -ne 0 ]; then
+		warn "server response was not expected"
+		echo "Response obtained from server:"
+		echo "$OUTPUT_CONTENT"
+		echo "Expected to see: Re-using existing connection! (#0) with host localhost"
+		echo "For Path:"
+		echo "$URL1"
+
+		stop
+		exit 1
+	fi
+
+
+	grep "Closing connection 0" file.txt
+
+	if [ $GREP_RET -ne 0 ]; then
+		warn "server response was not expected"
+		echo "Response obtained from server:"
+		echo "$OUTPUT_CONTENT"
+		echo "Expected to see: V"
+		echo "For Path:"
+		echo "$URL2"
+
+		stop
+		exit 1
+	fi
+
+
+
+}
 # Integration tests
 start
 
@@ -370,5 +429,6 @@ test_body_content "/static/samueli.jpg" "../data/static_data/samueli.jpg"
 test_body_content "/proxy/proxystatic/samueli.jpg" "../data/static_data/samueli.jpg"
 
 test_bad_req "GET /in HTTP/1.1\r\n\n\n" "400 Bad Request"
+test_keep_alive "/keepalive" "/print" 
 
 stop

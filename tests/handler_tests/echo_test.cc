@@ -20,6 +20,7 @@ TEST(EchoHandlerTest, UnitTests) {
 		p.Parse(&configStream, &config);
 		EchoHandler esv("/echo", config);
 		EXPECT_EQ("/echo", esv.get_url_prefix());
+		EXPECT_EQ(esv.keep_alive, 0);
 	}
 
 	{
@@ -42,4 +43,17 @@ TEST(EchoHandlerTest, UnitTests) {
 		EXPECT_NE(s.find("200 OK"), std::string::npos);
 		EXPECT_NE(s.find("GET", 5), std::string::npos);
 	}
+	{
+		NginxConfig config;
+		NginxConfigParser p;
+		std::istringstream configStream;
+
+		configStream.str("keep-alive 1;");
+		p.Parse(&configStream, &config);
+		EchoHandler esv("/echo", config);
+
+		EXPECT_EQ(esv.keep_alive, 1);
+	}
+
+
 }
