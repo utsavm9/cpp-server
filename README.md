@@ -1,38 +1,33 @@
-# Koko Webserver
 
-## 0. Ports
 
-The following port numbers are used by various server instances than can be lauched
-during testing or productions. The pair of ports correspond to the HTTP and HTTPS port
-used by the server instance. The instances that can possibly be run in parallel need to
-have different port numbers.
+<h1 align="center">Koko Webserver</h1>
 
-* 80, 443: Production server deployed to GCloud, uses `conf/deploy.conf`.
-* 8080, 8081: Manual testing server that can be launched using `conf/default.conf`.
-* 8000, 8001: `ServerTest.ServeForver` Unit test's server, ensuring that the server does not crashes instantly.
-* 8100, 8101: `ServerTest.MultiThreadTest` Unit test's server, for testing that the server can use multiple threads.
-* 8080, 8081: Integration test's primary server
-* 8082, 8083: Integration test's proxy server
- 
-## 1. Source Code Overview
- 
-This is a basic web server that performs different services, such as echoing a request and serving static files. It is built to be extensible by having external developers easily add more handlers.
-### Folders
- 
-* `conf/:` Configuration files for deployment and local debugging
-* `data/:` Static files to be served
-* `docker/:` dockerfiles for building deployment image
-* `include/:` header files defining classes
-* `src/:` `.cc` files containing class implementations and main method
-* `tests/:` test cases for source code
- 
-### Handlers
- 
-* `Handler:` parent class for Handlers. Pure virtual so cannot be instantiated.
-* `EchoHandler:` Simple Handler that echoes request on the specified url
-* `FileHandler:` Handler for serving static content from specific linux directory on request url
- 
-## 2. Build, Run, Test
+An async webserver written in C++ using Boost Beast library. It can:
+* Serve static files
+* Compress responses
+* Act as proxy
+* Supports HTTPS (SSL)
+* Reuse connection using `keep-alive`
+
+---
+
+## 1. Build, Run and Test
+
+
+### Dependencies
+```bash
+$ sudo apt-get install --yes \
+    build-essential \
+    cmake \
+    gcovr \
+    libboost-log-dev \
+    libboost-regex-dev \
+    libboost-system-dev \
+    libboost-iostreams-dev \
+    libgtest-dev \
+    libssl-dev \
+    zlib1g-dev
+```
  
 ### Build
  
@@ -47,7 +42,7 @@ $ make
  
 ### Run
  
-The executable is found at build/bin/webserver. Run
+The executable is found at `build/bin/webserver`. Run
  
 ```
 ./bin/webserver ../conf/default.conf
@@ -75,7 +70,40 @@ $ make coverage
 ```
 This will generate coverage reports in `${REPO}/build_coverage/report/index.html`
  
-## 3. Add Request Handler to Server
+
+## 2. Ports
+
+The following port numbers are used by various server instances than can be lauched
+during testing or productions. The pair of ports correspond to the HTTP and HTTPS port
+used by the server instance. The instances that can possibly be run in parallel need to
+have different port numbers.
+
+* 80, 443: Production server deployed to GCloud, uses `conf/deploy.conf`.
+* 8080, 8081: Manual testing server that can be launched using `conf/default.conf`.
+* 8000, 8001: `ServerTest.ServeForver` Unit test's server, ensuring that the server does not crashes instantly.
+* 8100, 8101: `ServerTest.MultiThreadTest` Unit test's server, for testing that the server can use multiple threads.
+* 8080, 8081: Integration test's primary server
+* 8082, 8083: Integration test's proxy server
+ 
+## 3. Source Code Overview
+ 
+This is a basic web server that performs different services, such as echoing a request and serving static files. It is built to be extensible by having external developers easily add more handlers.
+### Folders
+ 
+* `conf/:` Configuration files for deployment and local debugging
+* `data/:` Static files to be served
+* `docker/:` dockerfiles for building deployment image
+* `include/:` header files defining classes
+* `src/:` `.cc` files containing class implementations and main method
+* `tests/:` test cases for source code
+ 
+### Handlers
+ 
+* `Handler:` parent class for Handlers. Pure virtual so cannot be instantiated.
+* `EchoHandler:` Simple Handler that echoes request on the specified url
+* `FileHandler:` Handler for serving static content from specific linux directory on request url
+ 
+## 4. Add Request Handler to Server
  
 To add your own Handler follow these steps:
  
@@ -109,7 +137,7 @@ add_library(requestHandler src/requestHandler.cc src/echoHandler.cc src/fileHand
  
 * A well-documented header and source file example can be found at `src/notFoundHandler.cc` and `include/notFoundHandler.h`
 
-## Contribution Guidelines
+## 5. Contribution Guidelines
 
 We use the following CLang code formatting style:
 ```json
